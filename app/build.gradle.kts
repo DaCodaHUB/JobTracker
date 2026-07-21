@@ -7,7 +7,7 @@ plugins {
 
 apollo {
     service("service") {
-        packageName.set("com.example.jobtracker")
+        packageName.set("com.dangle.jobtracker")
     }
 }
 

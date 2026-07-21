@@ -1,4 +1,4 @@
-package com.dangle.jobtracker.screen.applicationlist
+package com.dangle.jobtracker.ui.addapplication
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -6,15 +6,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun ApplicationListRoute(
-    onAddClick: () -> Unit,
-    viewModel: ApplicationListViewModel = viewModel()
+fun AddApplicationRoute(
+    onBackClick: () -> Unit,
+    viewModel: AddApplicationViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ApplicationListScreen(
+    AddApplicationScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent,
-        onAddClick = onAddClick
+        onBackClick = onBackClick
     )
 }

@@ -1,4 +1,4 @@
-package com.dangle.jobtracker.screen.addapplication
+package com.dangle.jobtracker.ui.addapplication
 
 data class AddApplicationUiState(
     val companyName: String = "",

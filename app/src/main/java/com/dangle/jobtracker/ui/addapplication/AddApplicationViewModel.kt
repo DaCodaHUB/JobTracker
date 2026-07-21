@@ -1,4 +1,4 @@
-package com.dangle.jobtracker.screen.addapplication
+package com.dangle.jobtracker.ui.addapplication
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

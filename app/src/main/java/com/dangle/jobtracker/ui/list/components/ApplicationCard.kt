@@ -1,5 +1,5 @@
 // feature/applicationlist/components/ApplicationCard.kt
-package com.dangle.jobtracker.screen.applicationlist.components
+package com.dangle.jobtracker.ui.list.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.dangle.jobtracker.model.JobApplication
+import com.dangle.jobtracker.domain.model.JobApplication
 
 @Composable
 fun ApplicationCard(

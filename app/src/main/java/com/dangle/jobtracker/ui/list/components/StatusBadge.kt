@@ -1,5 +1,5 @@
 // feature/applicationlist/components/StatusBadge.kt
-package com.dangle.jobtracker.screen.applicationlist.components
+package com.dangle.jobtracker.ui.list.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.dangle.jobtracker.model.ApplicationStatus
+import com.dangle.jobtracker.domain.model.ApplicationStatus
 
 @Composable
 fun StatusBadge(
@@ -19,7 +19,7 @@ fun StatusBadge(
     val (backgroundColor, contentColor) = when (status) {
         ApplicationStatus.APPLIED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         ApplicationStatus.INTERVIEWING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        ApplicationStatus.OFFERED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        ApplicationStatus.OFFER -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         ApplicationStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     }
 

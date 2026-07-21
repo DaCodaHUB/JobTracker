@@ -1,4 +1,4 @@
-package com.dangle.jobtracker.screen.addapplication
+package com.dangle.jobtracker.ui.addapplication
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

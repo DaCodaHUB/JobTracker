@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.dangle.jobtracker.screen.addapplication.AddApplicationRoute
-import com.dangle.jobtracker.screen.applicationlist.ApplicationListRoute
+import com.dangle.jobtracker.ui.addapplication.AddApplicationRoute
+import com.dangle.jobtracker.ui.list.ApplicationListRoute
 
 class MainActivity : ComponentActivity() {
 
