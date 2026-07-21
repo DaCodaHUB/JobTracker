@@ -1,0 +1,9 @@
+query GetJobApplications {
+  jobApplications {
+    id
+    companyName
+    positionTitle
+    status
+    appliedDate
+  }
+}

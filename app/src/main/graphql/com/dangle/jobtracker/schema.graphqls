@@ -1,0 +1,12 @@
+type JobApplication {
+  id: ID!
+  companyName: String!
+  positionTitle: String!
+  status: String!
+  appliedDate: String!
+}
+
+type Query {
+  jobApplications: [JobApplication!]!
+  jobApplication(id: ID!): JobApplication
+}
