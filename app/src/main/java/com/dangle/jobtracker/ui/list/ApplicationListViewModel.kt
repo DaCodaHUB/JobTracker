@@ -1,9 +1,9 @@
-// feature/applicationlist/ApplicationListViewModel.kt
 package com.dangle.jobtracker.ui.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
+import com.dangle.jobtracker.domain.model.JobApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +16,7 @@ class ApplicationListViewModel(
 
     private val _uiState = MutableStateFlow(ApplicationListUiState(isLoading = true))
     val uiState: StateFlow<ApplicationListUiState> = _uiState.asStateFlow()
+    private var allApplications: List<JobApplication> = emptyList()
 
     init {
         loadApplications()
@@ -27,23 +28,29 @@ class ApplicationListViewModel(
 
             repository.getApplications()
                 .onSuccess { applications ->
-                    _uiState.update {
-                        it.copy(
-                            applications = applications,
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
+                    allApplications = applications
+                    applyFilters()
                 }
                 .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = error.localizedMessage
-                        )
-                    }
+                    // Just clear the loading state on failure.
+                    // (You can also add an error message to your UiState if you have an error field)
+                    _uiState.update { it.copy(isLoading = false) }
                 }
         }
+    }
+
+    private fun applyFilters() {
+        val query = uiState.value.searchQuery
+        val status = uiState.value.selectedStatus
+
+        val filtered = allApplications.filter { app ->
+            val matchesSearch = query.isBlank() || app.companyName.contains(query, ignoreCase = true)
+            val matchesStatus = status == null || app.status == status
+            matchesSearch && matchesStatus
+        }
+
+        // Update the list and clear the loading spinner at the same time
+        _uiState.update { it.copy(applications = filtered, isLoading = false) }
     }
 
     fun onEvent(event: ApplicationListEvent) {
@@ -51,17 +58,18 @@ class ApplicationListViewModel(
             ApplicationListEvent.Refresh -> {
                 loadApplications()
             }
-            ApplicationListEvent.AddApplicationClicked -> {
-                // Handled via UI navigation callback or side-effect channel
-            }
             is ApplicationListEvent.ApplicationClicked -> {
                 // TODO: Handle navigating to detail view or item selection
             }
             is ApplicationListEvent.SearchChanged -> {
-                // TODO: Update search query filter in UiState
+                // Moved from onFailure: Update state and trigger filter
+                _uiState.update { it.copy(searchQuery = event.query) }
+                applyFilters()
             }
             is ApplicationListEvent.StatusSelected -> {
-                // TODO: Update status filter in UiState
+                // Filled in the TODO: Update state and trigger filter
+                _uiState.update { it.copy(selectedStatus = event.status) }
+                applyFilters()
             }
         }
     }

@@ -1,3 +1,8 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
 type JobApplication {
   id: ID!
   companyName: String!
@@ -9,4 +14,17 @@ type JobApplication {
 type Query {
   jobApplications: [JobApplication!]!
   jobApplication(id: ID!): JobApplication
+}
+
+input CreateJobApplicationInput {
+  companyName: String!
+  positionTitle: String!
+  status: String!
+  appliedDate: String!
+}
+
+type Mutation {
+  createJobApplication(input: CreateJobApplicationInput!): JobApplication!
+  updateJobApplicationStatus(id: ID!, status: String!): JobApplication!
+  deleteJobApplication(id: ID!): Boolean!
 }

@@ -1,0 +1,23 @@
+# JobMutations.graphql
+mutation CreateJobApplication($input: CreateJobApplicationInput!) {
+    createJobApplication(input: $input) {
+        id
+        companyName
+        positionTitle
+        status
+        appliedDate
+    }
+}
+
+# Update Application Status
+mutation UpdateJobApplicationStatus($id: ID!, $status: String!) {
+    updateJobApplicationStatus(id: $id, status: $status) {
+        id
+        status
+    }
+}
+
+# Delete Application
+mutation DeleteJobApplication($id: ID!) {
+    deleteJobApplication(id: $id)
+}

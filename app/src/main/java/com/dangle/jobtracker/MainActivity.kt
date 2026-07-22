@@ -11,8 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.dangle.jobtracker.ui.addapplication.AddApplicationRoute
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dangle.jobtracker.ui.application.JobApplicationRoute
 import com.dangle.jobtracker.ui.list.ApplicationListRoute
+import com.dangle.jobtracker.ui.list.ApplicationListViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -33,16 +35,17 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = Screen.ApplicationList.route
                     ) {
-                        composable(Screen.ApplicationList.route) {
+                        composable("application_list") {
                             ApplicationListRoute(
-                                onAddClick = {
+                                viewModel = viewModel<ApplicationListViewModel>(),
+                                onNavigateToAddApplication = {
                                     navController.navigate(Screen.AddApplication.route)
                                 }
                             )
                         }
 
                         composable(Screen.AddApplication.route) {
-                            AddApplicationRoute(
+                            JobApplicationRoute(
                                 onBackClick = {
                                     navController.popBackStack()
                                 }

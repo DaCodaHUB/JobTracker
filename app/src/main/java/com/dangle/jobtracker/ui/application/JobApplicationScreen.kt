@@ -1,4 +1,4 @@
-package com.dangle.jobtracker.ui.addapplication
+package com.dangle.jobtracker.ui.application
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,9 +10,9 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddApplicationScreen(
-    uiState: AddApplicationUiState,
-    onEvent: (AddApplicationEvent) -> Unit,
+fun JobApplicationScreen(
+    uiState: JobApplicationUiState,
+    onEvent: (JobApplicationEvent) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -41,7 +41,7 @@ fun AddApplicationScreen(
         ) {
             OutlinedTextField(
                 value = uiState.companyName,
-                onValueChange = { onEvent(AddApplicationEvent.CompanyNameChanged(it)) },
+                onValueChange = { onEvent(JobApplicationEvent.CompanyNameChanged(it)) },
                 label = { Text("Company Name") },
                 isError = uiState.companyNameError != null,
                 supportingText = {
@@ -53,7 +53,7 @@ fun AddApplicationScreen(
 
             OutlinedTextField(
                 value = uiState.positionTitle,
-                onValueChange = { onEvent(AddApplicationEvent.PositionTitleChanged(it)) },
+                onValueChange = { onEvent(JobApplicationEvent.PositionTitleChanged(it)) },
                 label = { Text("Position Title") },
                 isError = uiState.positionTitleError != null,
                 supportingText = {
@@ -64,11 +64,20 @@ fun AddApplicationScreen(
             )
 
             Button(
-                onClick = { onEvent(AddApplicationEvent.Submit) },
-                enabled = uiState.isSubmitEnabled,
+                onClick = { onEvent(JobApplicationEvent.Submit) },
+                // Prevent double-submissions while loading
+                enabled = uiState.isSubmitEnabled && !uiState.isSubmitting,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Application")
+                if (uiState.isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Save Application")
+                }
             }
         }
     }

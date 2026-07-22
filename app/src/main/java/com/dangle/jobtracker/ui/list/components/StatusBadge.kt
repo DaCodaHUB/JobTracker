@@ -30,7 +30,7 @@ fun StatusBadge(
         modifier = modifier
     ) {
         Text(
-            text = status.name,
+            text = status.name.lowercase().replaceFirstChar { it.titlecase() },
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )

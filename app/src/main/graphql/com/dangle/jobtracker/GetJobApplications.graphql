@@ -1,3 +1,4 @@
+# GetJobApplications.graphql
 query GetJobApplications {
   jobApplications {
     id

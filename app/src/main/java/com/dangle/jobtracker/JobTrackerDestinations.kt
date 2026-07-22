@@ -1,3 +1,4 @@
+// JobTrackerDestinations.kt
 package com.dangle.jobtracker
 
 sealed class Screen(val route: String) {

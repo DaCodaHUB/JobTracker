@@ -27,7 +27,9 @@ fun ApplicationListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
+            FloatingActionButton(
+                onClick = onAddClick
+            ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Application"

@@ -1,20 +1,21 @@
 package com.dangle.jobtracker.ui.list
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun ApplicationListRoute(
-    onAddClick: () -> Unit,
-    viewModel: ApplicationListViewModel = viewModel()
+    viewModel: ApplicationListViewModel,
+    // This callback comes from your NavHost setup in MainActivity
+    onNavigateToAddApplication: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsState()
 
     ApplicationListScreen(
         uiState = uiState,
         onEvent = viewModel::onEvent,
-        onAddClick = onAddClick
+        // Pass the navigation callback directly to the screen
+        onAddClick = onNavigateToAddApplication
     )
 }

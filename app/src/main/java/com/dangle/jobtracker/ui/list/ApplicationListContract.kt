@@ -16,6 +16,5 @@ sealed interface ApplicationListEvent {
     data class SearchChanged(val query: String) : ApplicationListEvent
     data class StatusSelected(val status: ApplicationStatus?) : ApplicationListEvent
     data class ApplicationClicked(val id: String) : ApplicationListEvent
-    data object AddApplicationClicked : ApplicationListEvent
     data object Refresh : ApplicationListEvent
 }
