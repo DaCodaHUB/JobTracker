@@ -4,10 +4,11 @@ import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
 
 object ApolloClientProvider {
 
-    private const val BASE_URL = "http://your-endd-point/graphql"
+    private const val BASE_URL = "http://URL_ADDRESS/graphql"
 
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()

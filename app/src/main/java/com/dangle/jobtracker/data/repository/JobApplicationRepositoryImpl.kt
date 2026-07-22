@@ -10,13 +10,28 @@ import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.type.CreateJobApplicationInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 
 class JobApplicationRepositoryImpl(
     private val apolloClient: ApolloClient = ApolloClientProvider.client
 ) : JobApplicationRepository {
-    override fun observeApplications(): Flow<List<JobApplication>> = flowOf(emptyList())
+
+    companion object {
+        private val refreshSignal = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observeApplications(): Flow<List<JobApplication>> = refreshSignal
+        .onStart { emit(Unit) }
+        .flatMapLatest {
+            flow {
+                emit(getApplications().getOrDefault(emptyList()))
+            }
+        }
 
     override suspend fun getApplications(): Result<List<JobApplication>> = withContext(Dispatchers.IO) {
         try {
@@ -63,6 +78,7 @@ class JobApplicationRepositoryImpl(
 
             val data = response.data?.createJobApplication
             if (data != null) {
+                refreshSignal.tryEmit(Unit)
                 Result.success(
                     JobApplication(
                         id = data.id,
@@ -89,6 +105,7 @@ class JobApplicationRepositoryImpl(
             if (response.hasErrors()) {
                 Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Update failed"))
             } else {
+                refreshSignal.tryEmit(Unit)
                 Result.success(Unit)
             }
         } catch (e: Exception) {
