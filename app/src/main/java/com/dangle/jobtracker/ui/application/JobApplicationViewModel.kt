@@ -2,6 +2,7 @@ package com.dangle.jobtracker.ui.application
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangle.jobtracker.data.repository.FakeJobApplicationRepository
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import kotlinx.coroutines.channels.Channel
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class JobApplicationViewModel(
-    private val repository: JobApplicationRepository = JobApplicationRepository()
+    private val repository: JobApplicationRepository = FakeJobApplicationRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(JobApplicationUiState())
@@ -44,16 +45,16 @@ class JobApplicationViewModel(
                     )
                 }
             }
-            JobApplicationEvent.Submit -> submitApplication()
+            JobApplicationEvent.SaveClicked -> saveApplication()
         }
     }
 
-    private fun submitApplication() {
+    private fun saveApplication() {
         val currentState = _uiState.value
         if (!currentState.isSubmitEnabled || currentState.isSubmitting) return
 
-        // Lock the form while submitting
-        _uiState.update { it.copy(isSubmitting = true) }
+        // Lock the form while submitting and clear any previous error
+        _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
 
         viewModelScope.launch {
             val result = repository.createApplication(
@@ -65,14 +66,16 @@ class JobApplicationViewModel(
 
             result.onSuccess {
                 _uiState.update { it.copy(isSubmitting = false) }
-                // Use .send() for Channels
                 _effect.send(JobApplicationSideEffect.NavigateBack)
             }
 
             result.onFailure { error ->
-                _uiState.update { it.copy(isSubmitting = false) }
-                // Use .send() for Channels
-                _effect.send(JobApplicationSideEffect.ShowError(error.message ?: "Failed to save"))
+                _uiState.update {
+                    it.copy(
+                        isSubmitting = false,
+                        errorMessage = error.message ?: "Failed to save application"
+                    )
+                }
             }
         }
     }

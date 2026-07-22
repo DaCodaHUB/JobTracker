@@ -8,8 +8,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -17,7 +19,7 @@ import com.dangle.jobtracker.ui.list.components.ApplicationCard
 fun ApplicationListScreen(
     uiState: ApplicationListUiState,
     onEvent: (ApplicationListEvent) -> Unit,
-    onAddClick: () -> Unit, // Add navigation callback
+    onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(

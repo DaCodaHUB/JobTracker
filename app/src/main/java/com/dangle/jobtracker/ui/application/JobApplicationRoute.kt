@@ -3,6 +3,8 @@ package com.dangle.jobtracker.ui.application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHostState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -12,14 +14,15 @@ fun JobApplicationRoute(
     viewModel: JobApplicationViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Handle one-off side effects
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.effect) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is JobApplicationSideEffect.NavigateBack -> onBackClick()
                 is JobApplicationSideEffect.ShowError -> {
-                    // TODO: Trigger a Snackbar or Toast
+                    snackbarHostState.showSnackbar(effect.message)
                 }
             }
         }
@@ -27,6 +30,7 @@ fun JobApplicationRoute(
 
     JobApplicationScreen(
         uiState = uiState,
+        snackbarHostState = snackbarHostState,
         onEvent = viewModel::onEvent,
         onBackClick = onBackClick
     )

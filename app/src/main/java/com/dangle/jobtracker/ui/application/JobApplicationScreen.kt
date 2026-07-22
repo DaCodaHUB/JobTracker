@@ -12,11 +12,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun JobApplicationScreen(
     uiState: JobApplicationUiState,
+    snackbarHostState: SnackbarHostState,
     onEvent: (JobApplicationEvent) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Add New Application") },
@@ -64,7 +66,7 @@ fun JobApplicationScreen(
             )
 
             Button(
-                onClick = { onEvent(JobApplicationEvent.Submit) },
+                onClick = { onEvent(JobApplicationEvent.SaveClicked) },
                 // Prevent double-submissions while loading
                 enabled = uiState.isSubmitEnabled && !uiState.isSubmitting,
                 modifier = Modifier.fillMaxWidth()

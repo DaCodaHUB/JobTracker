@@ -7,13 +7,14 @@ data class JobApplicationUiState(
     val companyNameError: String? = null,
     val positionTitleError: String? = null,
     val isSubmitEnabled: Boolean = false,
-    val isSubmitting: Boolean = false
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null
 )
 
 sealed interface JobApplicationEvent {
     data class CompanyNameChanged(val name: String) : JobApplicationEvent
     data class PositionTitleChanged(val title: String) : JobApplicationEvent
-    data object Submit : JobApplicationEvent
+    data object SaveClicked : JobApplicationEvent
 }
 
 sealed interface JobApplicationSideEffect {

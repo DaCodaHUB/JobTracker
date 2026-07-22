@@ -2,16 +2,19 @@ package com.dangle.jobtracker.ui.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangle.jobtracker.data.repository.FakeJobApplicationRepository
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import com.dangle.jobtracker.domain.model.JobApplication
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ApplicationListViewModel(
-    private val repository: JobApplicationRepository = JobApplicationRepository()
+    private val repository: JobApplicationRepository = FakeJobApplicationRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ApplicationListUiState(isLoading = true))
@@ -19,6 +22,13 @@ class ApplicationListViewModel(
     private var allApplications: List<JobApplication> = emptyList()
 
     init {
+        repository.observeApplications()
+            .onEach { applications ->
+                allApplications = applications
+                applyFilters()
+            }
+            .launchIn(viewModelScope)
+
         loadApplications()
     }
 
@@ -28,6 +38,7 @@ class ApplicationListViewModel(
 
             repository.getApplications()
                 .onSuccess { applications ->
+                    _uiState.update { it.copy(applications = applications) }
                     allApplications = applications
                     applyFilters()
                 }

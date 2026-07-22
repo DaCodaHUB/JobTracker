@@ -7,7 +7,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 object ApolloClientProvider {
 
-    private const val BASE_URL = "https://your-graphql-endpoint.com/graphql"
+    private const val BASE_URL = "http://your-endd-point/graphql"
 
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
