@@ -18,7 +18,9 @@ import com.dangle.jobtracker.ui.application.JobApplicationRoute
 import com.dangle.jobtracker.ui.application.JobApplicationViewModel
 import com.dangle.jobtracker.ui.list.ApplicationListRoute
 import com.dangle.jobtracker.ui.list.ApplicationListViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
