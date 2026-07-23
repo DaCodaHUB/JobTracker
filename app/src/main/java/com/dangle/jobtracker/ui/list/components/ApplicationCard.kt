@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.SyncStatus
 
 @Composable
 fun ApplicationCard(
@@ -37,7 +38,7 @@ fun ApplicationCard(
                         text = application.companyName,
                         style = MaterialTheme.typography.titleMedium
                     )
-                    if (application.isPendingSync) {
+                    if (application.syncStatus != SyncStatus.SYNCED) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Default.Refresh,

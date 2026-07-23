@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,8 +51,8 @@ class ApplicationListViewModel @Inject constructor (
     )
 
     private fun reconcileApplications(all: List<JobApplication>): List<JobApplication> {
-        val synced = all.filter { !it.isPendingSync }
-        val pending = all.filter { it.isPendingSync }
+        val synced = all.filter { it.syncStatus == SyncStatus.SYNCED }
+        val pending = all.filter { it.syncStatus != SyncStatus.SYNCED }
 
         // Hide pending items that match a synced one (robust comparison)
         val uniquePending = pending.filter { p ->

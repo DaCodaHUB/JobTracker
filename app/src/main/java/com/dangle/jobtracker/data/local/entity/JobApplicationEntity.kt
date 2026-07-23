@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.SyncStatus
 
 @Entity(tableName = "job_applications")
 data class JobApplicationEntity(
@@ -13,7 +14,7 @@ data class JobApplicationEntity(
     val positionTitle: String,
     val status: String,
     val appliedDate: String,
-    val isPendingSync: Boolean = false
+    val syncStatus: SyncStatus = SyncStatus.SYNCED
 )
 
 fun JobApplicationEntity.toDomainModel(): JobApplication {
@@ -23,6 +24,6 @@ fun JobApplicationEntity.toDomainModel(): JobApplication {
         positionTitle = positionTitle,
         status = ApplicationStatus.fromString(status),
         appliedDate = appliedDate,
-        isPendingSync = isPendingSync
+        syncStatus = syncStatus
     )
 }

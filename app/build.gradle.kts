@@ -84,6 +84,11 @@ dependencies {
     // Hilt Navigation Compose (Crucial for Phase 4)
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // Core AndroidX & Lifecycle
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

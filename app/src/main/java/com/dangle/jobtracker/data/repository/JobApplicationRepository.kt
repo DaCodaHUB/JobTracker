@@ -17,9 +17,9 @@ interface JobApplicationRepository {
     suspend fun refreshApplications(): Result<Unit>
 
     /**
-     * Sync any locally saved applications that haven't been pushed to the server yet.
+     * Schedule a sync of any locally saved applications that haven't been pushed to the server yet.
      */
-    suspend fun syncPendingApplications(): Result<Unit>
+    fun scheduleSync()
 
     suspend fun createApplication(
         companyName: String,

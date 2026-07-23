@@ -16,11 +16,18 @@ enum class ApplicationStatus {
     }
 }
 
+enum class SyncStatus {
+    SYNCED,
+    PENDING_CREATE,
+    PENDING_UPDATE,
+    PENDING_DELETE
+}
+
 data class JobApplication(
     val id: String,
     val companyName: String,
     val positionTitle: String,
     val status: ApplicationStatus,
     val appliedDate: String,
-    val isPendingSync: Boolean = false
+    val syncStatus: SyncStatus = SyncStatus.SYNCED
 )

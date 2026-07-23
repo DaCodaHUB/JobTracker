@@ -5,6 +5,7 @@ import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.SyncStatus
 
 fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
     return JobApplicationEntity(
@@ -13,7 +14,7 @@ fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
-        isPendingSync = false
+        syncStatus = SyncStatus.SYNCED
     )
 }
 
@@ -24,7 +25,7 @@ fun CreateJobApplicationMutation.CreateJobApplication.toEntity(): JobApplication
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
-        isPendingSync = false
+        syncStatus = SyncStatus.SYNCED
     )
 }
 
@@ -35,6 +36,6 @@ fun JobApplicationEntity.toDomain(): JobApplication {
         positionTitle = positionTitle,
         status = ApplicationStatus.fromString(status),
         appliedDate = appliedDate,
-        isPendingSync = isPendingSync
+        syncStatus = syncStatus
     )
 }

@@ -15,8 +15,14 @@ interface JobApplicationDao {
     @Query("SELECT * FROM job_applications ORDER BY appliedDate DESC")
     fun getAllApplications(): Flow<List<JobApplicationEntity>>
 
-    @Query("SELECT * FROM job_applications WHERE isPendingSync = 1")
+    @Query("SELECT * FROM job_applications WHERE syncStatus != 'SYNCED'")
     suspend fun getPendingApplications(): List<JobApplicationEntity>
+
+    @Query("SELECT * FROM job_applications WHERE syncStatus != 'SYNCED'")
+    suspend fun getNonSyncedApplications(): List<JobApplicationEntity>
+
+    @Query("SELECT * FROM job_applications WHERE id = :id")
+    suspend fun getApplicationById(id: String): JobApplicationEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApplication(entity: JobApplicationEntity)

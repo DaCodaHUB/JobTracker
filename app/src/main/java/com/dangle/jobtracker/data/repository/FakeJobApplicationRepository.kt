@@ -2,6 +2,7 @@ package com.dangle.jobtracker.data.repository
 
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.ApplicationStatus
+import com.dangle.jobtracker.domain.model.SyncStatus
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -18,9 +19,8 @@ class FakeJobApplicationRepository : JobApplicationRepository {
 
     override fun getApplications(): Flow<List<JobApplication>> = _applicationsFlow.asStateFlow()
 
-    override suspend fun syncPendingApplications(): Result<Unit> {
-        delay(300)
-        return Result.success(Unit)
+    override fun scheduleSync() {
+        // No-op in fake
     }
 
     override suspend fun refreshApplications(): Result<Unit> {
@@ -42,7 +42,7 @@ class FakeJobApplicationRepository : JobApplicationRepository {
             positionTitle = positionTitle,
             status = status,
             appliedDate = appliedDate,
-            isPendingSync = false
+            syncStatus = SyncStatus.SYNCED
         )
 
         applications.add(newApp)

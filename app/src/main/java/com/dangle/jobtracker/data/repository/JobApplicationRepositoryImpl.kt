@@ -1,15 +1,16 @@
 package com.dangle.jobtracker.data.repository
 
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.apollographql.apollo.ApolloClient
-import com.dangle.jobtracker.CreateJobApplicationMutation
 import com.dangle.jobtracker.GetJobApplicationsQuery
-import com.dangle.jobtracker.UpdateJobApplicationStatusMutation
 import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
-import com.dangle.jobtracker.data.network.ApolloClientProvider
+import com.dangle.jobtracker.data.worker.SyncJobApplicationsWorker
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
-import com.dangle.jobtracker.type.CreateJobApplicationInput
+import com.dangle.jobtracker.domain.model.SyncStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,8 +19,9 @@ import java.util.UUID
 import javax.inject.Inject
 
 class JobApplicationRepositoryImpl @Inject constructor (
-    private val apolloClient: ApolloClient = ApolloClientProvider.client,
-    private val dao: JobApplicationDao
+    private val apolloClient: ApolloClient,
+    private val dao: JobApplicationDao,
+    private val workManager: WorkManager
 ) : JobApplicationRepository {
 
     override fun getApplications(): Flow<List<JobApplication>> {
@@ -28,18 +30,18 @@ class JobApplicationRepositoryImpl @Inject constructor (
         }
     }
 
-    override suspend fun syncPendingApplications(): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val pending = dao.getPendingApplications()
-            pending.forEach { syncSingleApplication(it) }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    override fun scheduleSync() {
+        val workRequest = OneTimeWorkRequestBuilder<SyncJobApplicationsWorker>()
+            .build()
+        workManager.enqueueUniqueWork(
+            "SyncJobApplicationsWork",
+            ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
     }
 
     override suspend fun refreshApplications(): Result<Unit> = withContext(Dispatchers.IO) {
-        syncPendingApplications()
+        scheduleSync()
         try {
             val response = apolloClient.query(GetJobApplicationsQuery()).execute()
             val serverItems = response.data?.jobApplications
@@ -66,50 +68,28 @@ class JobApplicationRepositoryImpl @Inject constructor (
             id = "local_${UUID.randomUUID()}",
             companyName = companyName, positionTitle = positionTitle,
             status = status.name, appliedDate = appliedDate,
-            isPendingSync = true
+            syncStatus = SyncStatus.PENDING_CREATE
         )
         dao.insertApplication(initialEntity)
 
-        // Attempt background sync
-        syncSingleApplication(initialEntity)
+        scheduleSync()
 
         Result.success(initialEntity.toDomain())
     }
 
-    private suspend fun syncSingleApplication(entity: JobApplicationEntity) {
-        try {
-            val response = apolloClient.mutation(
-                CreateJobApplicationMutation(
-                    input = CreateJobApplicationInput(
-                        companyName = entity.companyName,
-                        positionTitle = entity.positionTitle,
-                        status = entity.status,
-                        appliedDate = entity.appliedDate
-                    )
-                )
-            ).execute()
-
-            val data = response.data?.createJobApplication
-            if (data != null && !response.hasErrors()) {
-                dao.deleteApplication(entity)
-                dao.insertApplication(data.toEntity())
-            }
-        } catch (e: Exception) {
-            // Silently fail, item remains as pending
-        }
-    }
-
     override suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val response = apolloClient.mutation(
-                UpdateJobApplicationStatusMutation(id = id, status = newStatus.name)
-            ).execute()
-
-            if (response.hasErrors()) {
-                Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Update failed"))
-            } else {
-                refreshApplications()
+            val entity = dao.getApplicationById(id)
+            if (entity != null) {
+                val updatedEntity = entity.copy(
+                    status = newStatus.name,
+                    syncStatus = if (entity.syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING_UPDATE else entity.syncStatus
+                )
+                dao.updateApplication(updatedEntity)
+                scheduleSync()
                 Result.success(Unit)
+            } else {
+                Result.failure(Exception("Application not found"))
             }
         } catch (e: Exception) {
             Result.failure(e)
