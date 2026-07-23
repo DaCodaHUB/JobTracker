@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     id("com.apollographql.apollo")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.hilt.android)
 }
 
 val localProperties = Properties()
@@ -78,8 +78,8 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:5.4.0")
 
     // Hilt Core
-    implementation("com.google.dagger:hilt-android:2.51.1")
-    ksp("com.google.dagger:hilt-compiler:2.51.1")
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     // Hilt Navigation Compose (Crucial for Phase 4)
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")

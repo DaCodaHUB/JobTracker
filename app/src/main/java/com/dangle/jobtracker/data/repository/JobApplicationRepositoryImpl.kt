@@ -15,8 +15,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import javax.inject.Inject
 
-class JobApplicationRepositoryImpl(
+class JobApplicationRepositoryImpl @Inject constructor (
     private val apolloClient: ApolloClient = ApolloClientProvider.client,
     private val dao: JobApplicationDao
 ) : JobApplicationRepository {

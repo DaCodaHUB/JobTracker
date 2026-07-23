@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -29,9 +30,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val app = (application as JobTrackerApplication)
-            val repository = app.repository
-
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -44,13 +42,8 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.ApplicationList.route
                     ) {
                         composable("application_list") {
-                            val viewModel: ApplicationListViewModel = viewModel(
-                                factory = viewModelFactory {
-                                    initializer {
-                                        ApplicationListViewModel(repository)
-                                    }
-                                }
-                            )
+                            val viewModel: ApplicationListViewModel = hiltViewModel()
+
                             ApplicationListRoute(
                                 viewModel = viewModel,
                                 onNavigateToAddApplication = {
@@ -60,13 +53,8 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.AddApplication.route) {
-                            val viewModel: JobApplicationViewModel = viewModel(
-                                factory = viewModelFactory {
-                                    initializer {
-                                        JobApplicationViewModel(repository)
-                                    }
-                                }
-                            )
+                            val viewModel: JobApplicationViewModel = hiltViewModel()
+
                             JobApplicationRoute(
                                 viewModel = viewModel,
                                 onBackClick = {
