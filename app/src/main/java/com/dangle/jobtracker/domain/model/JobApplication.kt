@@ -21,5 +21,6 @@ data class JobApplication(
     val companyName: String,
     val positionTitle: String,
     val status: ApplicationStatus,
-    val appliedDate: String
+    val appliedDate: String,
+    val isPendingSync: Boolean = false
 )

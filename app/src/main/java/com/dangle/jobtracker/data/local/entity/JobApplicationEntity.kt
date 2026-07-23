@@ -12,7 +12,8 @@ data class JobApplicationEntity(
     val companyName: String,
     val positionTitle: String,
     val status: String,
-    val appliedDate: String
+    val appliedDate: String,
+    val isPendingSync: Boolean = false
 )
 
 fun JobApplicationEntity.toDomainModel(): JobApplication {
@@ -21,6 +22,7 @@ fun JobApplicationEntity.toDomainModel(): JobApplication {
         companyName = companyName,
         positionTitle = positionTitle,
         status = ApplicationStatus.fromString(status),
-        appliedDate = appliedDate
+        appliedDate = appliedDate,
+        isPendingSync = isPendingSync
     )
 }

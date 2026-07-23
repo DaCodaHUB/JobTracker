@@ -15,6 +15,9 @@ interface JobApplicationDao {
     @Query("SELECT * FROM job_applications ORDER BY appliedDate DESC")
     fun getAllApplications(): Flow<List<JobApplicationEntity>>
 
+    @Query("SELECT * FROM job_applications WHERE isPendingSync = 1")
+    suspend fun getPendingApplications(): List<JobApplicationEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApplication(entity: JobApplicationEntity)
 
@@ -26,4 +29,7 @@ interface JobApplicationDao {
 
     @Delete
     suspend fun deleteApplication(entity: JobApplicationEntity)
+
+    @Delete
+    suspend fun deleteApplications(entities: List<JobApplicationEntity>)
 }

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,13 @@ plugins {
     alias(libs.plugins.ksp)
     id("com.apollographql.apollo")
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+val apiUrl = localProperties.getProperty("api.url") ?: ""
 
 apollo {
     service("service") {
@@ -24,6 +33,8 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "BASE_URL", "\"$apiUrl\"")
     }
 
     buildTypes {
@@ -41,6 +52,7 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

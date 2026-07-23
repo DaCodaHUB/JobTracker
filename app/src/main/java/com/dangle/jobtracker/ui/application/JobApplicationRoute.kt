@@ -10,8 +10,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun JobApplicationRoute(
-    onBackClick: () -> Unit,
-    viewModel: JobApplicationViewModel = viewModel()
+    viewModel: JobApplicationViewModel,
+    onBackClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }

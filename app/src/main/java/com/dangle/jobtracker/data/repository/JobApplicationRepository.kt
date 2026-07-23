@@ -5,10 +5,21 @@ import com.dangle.jobtracker.domain.model.JobApplication
 import kotlinx.coroutines.flow.Flow
 
 interface JobApplicationRepository {
-    // No function bodies here, just the signatures
-    suspend fun getApplications(): Result<List<JobApplication>>
     
-    fun observeApplications(): Flow<List<JobApplication>>
+    /**
+     * Observe the list of applications from the local database.
+     */
+    fun getApplications(): Flow<List<JobApplication>>
+
+    /**
+     * Fetch the latest applications from the network and sync to the local database.
+     */
+    suspend fun refreshApplications(): Result<Unit>
+
+    /**
+     * Sync any locally saved applications that haven't been pushed to the server yet.
+     */
+    suspend fun syncPendingApplications(): Result<Unit>
 
     suspend fun createApplication(
         companyName: String,

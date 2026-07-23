@@ -3,7 +3,6 @@ package com.dangle.jobtracker.ui.application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
-import com.dangle.jobtracker.data.repository.JobApplicationRepositoryImpl
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +14,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class JobApplicationViewModel(
-    private val repository: JobApplicationRepository = JobApplicationRepositoryImpl()
+    private val repository: JobApplicationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(JobApplicationUiState())

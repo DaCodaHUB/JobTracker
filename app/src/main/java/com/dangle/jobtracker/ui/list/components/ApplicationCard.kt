@@ -2,10 +2,13 @@
 package com.dangle.jobtracker.ui.list.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.JobApplication
 
@@ -29,10 +32,21 @@ fun ApplicationCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = application.companyName,
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = application.companyName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (application.isPendingSync) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Syncing",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
                 StatusBadge(status = application.status)
             }
             Spacer(modifier = Modifier.height(4.dp))

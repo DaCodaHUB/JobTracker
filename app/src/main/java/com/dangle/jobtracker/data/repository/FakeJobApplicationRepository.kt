@@ -16,14 +16,16 @@ class FakeJobApplicationRepository : JobApplicationRepository {
         private val _applicationsFlow = MutableStateFlow<List<JobApplication>>(emptyList())
     }
 
-    override fun observeApplications(): Flow<List<JobApplication>> = _applicationsFlow.asStateFlow()
+    override fun getApplications(): Flow<List<JobApplication>> = _applicationsFlow.asStateFlow()
 
-    override suspend fun getApplications(): Result<List<JobApplication>> {
-        // Optional: Add a delay to test your UI's loading spinner
-        delay(800)
+    override suspend fun syncPendingApplications(): Result<Unit> {
+        delay(300)
+        return Result.success(Unit)
+    }
 
-        // Return a copy of the list
-        return Result.success(applications.toList())
+    override suspend fun refreshApplications(): Result<Unit> {
+        delay(500)
+        return Result.success(Unit)
     }
 
     override suspend fun createApplication(
@@ -39,7 +41,8 @@ class FakeJobApplicationRepository : JobApplicationRepository {
             companyName = companyName,
             positionTitle = positionTitle,
             status = status,
-            appliedDate = appliedDate
+            appliedDate = appliedDate,
+            isPendingSync = false
         )
 
         applications.add(newApp)

@@ -4,54 +4,51 @@ import com.apollographql.apollo.ApolloClient
 import com.dangle.jobtracker.CreateJobApplicationMutation
 import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.UpdateJobApplicationStatusMutation
+import com.dangle.jobtracker.data.local.dao.JobApplicationDao
+import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.data.network.ApolloClientProvider
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.type.CreateJobApplicationInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class JobApplicationRepositoryImpl(
-    private val apolloClient: ApolloClient = ApolloClientProvider.client
+    private val apolloClient: ApolloClient = ApolloClientProvider.client,
+    private val dao: JobApplicationDao
 ) : JobApplicationRepository {
 
-    companion object {
-        private val refreshSignal = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    override fun getApplications(): Flow<List<JobApplication>> {
+        return dao.getAllApplications().map { entities ->
+            entities.map { it.toDomain() }
+        }
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    override fun observeApplications(): Flow<List<JobApplication>> = refreshSignal
-        .onStart { emit(Unit) }
-        .flatMapLatest {
-            flow {
-                emit(getApplications().getOrDefault(emptyList()))
-            }
+    override suspend fun syncPendingApplications(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val pending = dao.getPendingApplications()
+            pending.forEach { syncSingleApplication(it) }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+    }
 
-    override suspend fun getApplications(): Result<List<JobApplication>> = withContext(Dispatchers.IO) {
+    override suspend fun refreshApplications(): Result<Unit> = withContext(Dispatchers.IO) {
+        syncPendingApplications()
         try {
             val response = apolloClient.query(GetJobApplicationsQuery()).execute()
-
-            if (response.hasErrors()) {
-                val errorMessage = response.errors?.firstOrNull()?.message ?: "Unknown GraphQL Error"
+            val serverItems = response.data?.jobApplications
+            
+            if (response.hasErrors() || serverItems == null) {
+                val errorMessage = response.errors?.firstOrNull()?.message ?: "Fetch failed"
                 Result.failure(Exception(errorMessage))
             } else {
-                val items = response.data?.jobApplications?.map { queryItem ->
-                    JobApplication(
-                        id = queryItem.id,
-                        companyName = queryItem.companyName,
-                        positionTitle = queryItem.positionTitle,
-                        status = ApplicationStatus.fromString(queryItem.status),
-                        appliedDate = queryItem.appliedDate
-                    )
-                } ?: emptyList()
-
-                Result.success(items)
+                dao.insertApplications(serverItems.map { it.toEntity() })
+                Result.success(Unit)
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -64,35 +61,40 @@ class JobApplicationRepositoryImpl(
         status: ApplicationStatus,
         appliedDate: String
     ): Result<JobApplication> = withContext(Dispatchers.IO) {
+        val initialEntity = JobApplicationEntity(
+            id = "local_${UUID.randomUUID()}",
+            companyName = companyName, positionTitle = positionTitle,
+            status = status.name, appliedDate = appliedDate,
+            isPendingSync = true
+        )
+        dao.insertApplication(initialEntity)
+
+        // Attempt background sync
+        syncSingleApplication(initialEntity)
+
+        Result.success(initialEntity.toDomain())
+    }
+
+    private suspend fun syncSingleApplication(entity: JobApplicationEntity) {
         try {
             val response = apolloClient.mutation(
                 CreateJobApplicationMutation(
                     input = CreateJobApplicationInput(
-                        companyName = companyName,
-                        positionTitle = positionTitle,
-                        status = status.name,
-                        appliedDate = appliedDate
+                        companyName = entity.companyName,
+                        positionTitle = entity.positionTitle,
+                        status = entity.status,
+                        appliedDate = entity.appliedDate
                     )
                 )
             ).execute()
 
             val data = response.data?.createJobApplication
-            if (data != null) {
-                refreshSignal.tryEmit(Unit)
-                Result.success(
-                    JobApplication(
-                        id = data.id,
-                        companyName = data.companyName,
-                        positionTitle = data.positionTitle,
-                        status = ApplicationStatus.fromString(data.status),
-                        appliedDate = data.appliedDate
-                    )
-                )
-            } else {
-                Result.failure(Exception("Failed to create application"))
+            if (data != null && !response.hasErrors()) {
+                dao.deleteApplication(entity)
+                dao.insertApplication(data.toEntity())
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            // Silently fail, item remains as pending
         }
     }
 
@@ -105,7 +107,7 @@ class JobApplicationRepositoryImpl(
             if (response.hasErrors()) {
                 Result.failure(Exception(response.errors?.firstOrNull()?.message ?: "Update failed"))
             } else {
-                refreshSignal.tryEmit(Unit)
+                refreshApplications()
                 Result.success(Unit)
             }
         } catch (e: Exception) {
