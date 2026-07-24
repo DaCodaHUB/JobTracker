@@ -1,9 +1,12 @@
 // JobApplicationContract.kt
 package com.dangle.jobtracker.ui.application
 
+import com.dangle.jobtracker.domain.model.ApplicationStatus
+
 data class JobApplicationUiState(
     val companyName: String = "",
     val positionTitle: String = "",
+    val selectedStatus: ApplicationStatus = ApplicationStatus.APPLIED,
     val companyNameError: String? = null,
     val positionTitleError: String? = null,
     val isSubmitEnabled: Boolean = false,
@@ -14,6 +17,7 @@ data class JobApplicationUiState(
 sealed interface JobApplicationEvent {
     data class CompanyNameChanged(val name: String) : JobApplicationEvent
     data class PositionTitleChanged(val title: String) : JobApplicationEvent
+    data class StatusChanged(val status: ApplicationStatus) : JobApplicationEvent
     data object SaveClicked : JobApplicationEvent
 }
 

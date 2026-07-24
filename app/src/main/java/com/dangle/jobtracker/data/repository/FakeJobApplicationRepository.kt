@@ -8,6 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 class FakeJobApplicationRepository : JobApplicationRepository {
     
@@ -42,7 +43,8 @@ class FakeJobApplicationRepository : JobApplicationRepository {
             positionTitle = positionTitle,
             status = status,
             appliedDate = appliedDate,
-            syncStatus = SyncStatus.SYNCED
+            syncStatus = SyncStatus.SYNCED,
+            version = 1
         )
 
         applications.add(newApp)
@@ -55,6 +57,55 @@ class FakeJobApplicationRepository : JobApplicationRepository {
         val index = applications.indexOfFirst { it.id == id }
         if (index != -1) {
             applications[index] = applications[index].copy(status = newStatus)
+            _applicationsFlow.value = applications.toList()
+            return Result.success(Unit)
+        }
+        return Result.failure(Exception("Application not found"))
+    }
+
+    override suspend fun deleteApplication(id: String): Result<Unit> {
+        delay(300)
+        val index = applications.indexOfFirst { it.id == id }
+        if (index != -1) {
+            applications.removeAt(index)
+            _applicationsFlow.value = applications.toList()
+            return Result.success(Unit)
+        }
+        return Result.failure(Exception("Application not found"))
+    }
+
+    override suspend fun resolveKeepMine(id: String): Result<Unit> {
+        delay(300)
+        val index = applications.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val app = applications[index]
+            applications[index] = app.copy(
+                version = app.serverVersion ?: app.version,
+                syncStatus = SyncStatus.PENDING_UPDATE,
+                serverCompany = null,
+                serverStatus = null,
+                serverVersion = null
+            )
+            _applicationsFlow.value = applications.toList()
+            return Result.success(Unit)
+        }
+        return Result.failure(Exception("Application not found"))
+    }
+
+    override suspend fun resolveKeepServer(id: String): Result<Unit> {
+        delay(300)
+        val index = applications.indexOfFirst { it.id == id }
+        if (index != -1) {
+            val app = applications[index]
+            applications[index] = app.copy(
+                companyName = app.serverCompany ?: app.companyName,
+                status = app.serverStatus ?: app.status,
+                version = app.serverVersion ?: app.version,
+                syncStatus = SyncStatus.SYNCED,
+                serverCompany = null,
+                serverStatus = null,
+                serverVersion = null
+            )
             _applicationsFlow.value = applications.toList()
             return Result.success(Unit)
         }

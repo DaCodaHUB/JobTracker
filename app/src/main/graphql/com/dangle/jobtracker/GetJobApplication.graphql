@@ -1,6 +1,5 @@
-# GetJobApplications.graphql
-query GetJobApplications {
-  jobApplications {
+query GetJobApplication($id: ID!) {
+  jobApplication(id: $id) {
     id
     companyName
     positionTitle

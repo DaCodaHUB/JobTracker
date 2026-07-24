@@ -1,6 +1,8 @@
 package com.dangle.jobtracker.data.repository
 
+import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.apollographql.apollo.ApolloClient
@@ -31,7 +33,12 @@ class JobApplicationRepositoryImpl @Inject constructor (
     }
 
     override fun scheduleSync() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
         val workRequest = OneTimeWorkRequestBuilder<SyncJobApplicationsWorker>()
+            .setConstraints(constraints)
             .build()
         workManager.enqueueUniqueWork(
             "SyncJobApplicationsWork",
@@ -41,7 +48,6 @@ class JobApplicationRepositoryImpl @Inject constructor (
     }
 
     override suspend fun refreshApplications(): Result<Unit> = withContext(Dispatchers.IO) {
-        scheduleSync()
         try {
             val response = apolloClient.query(GetJobApplicationsQuery()).execute()
             val serverItems = response.data?.jobApplications
@@ -50,7 +56,61 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 val errorMessage = response.errors?.firstOrNull()?.message ?: "Fetch failed"
                 Result.failure(Exception(errorMessage))
             } else {
-                dao.insertApplications(serverItems.map { it.toEntity() })
+                val localItems = dao.getAllApplicationsSync()
+                val localMap = localItems.associateBy { it.id }
+                val serverMap = serverItems.associateBy { it.id }
+
+                // 1. Identify items to update, insert, or mark as conflicted
+                val toUpdateOrInsert = mutableListOf<JobApplicationEntity>()
+                val toMarkConflicted = mutableListOf<JobApplicationEntity>()
+
+                serverItems.forEach { serverItem ->
+                    val localItem = localMap[serverItem.id]
+                    if (localItem == null || localItem.version < serverItem.version) {
+                        val shouldAutoResolve = localItem != null && 
+                                localItem.syncStatus != SyncStatus.SYNCED && 
+                                localItem.status == serverItem.status
+
+                        if (localItem == null || localItem.syncStatus == SyncStatus.SYNCED || shouldAutoResolve) {
+                            // New item, synced item update, or auto-resolved conflict
+                            toUpdateOrInsert.add(serverItem.toEntity())
+                        } else {
+                            // Actual conflict
+                            toMarkConflicted.add(
+                                localItem.copy(
+                                    syncStatus = SyncStatus.CONFLICT,
+                                    serverCompany = serverItem.companyName,
+                                    serverPositionTitle = serverItem.positionTitle,
+                                    serverStatus = serverItem.status,
+                                    serverAppliedDate = serverItem.appliedDate,
+                                    serverVersion = serverItem.version
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // 2. Identify items to delete:
+                // - SYNCED locally but missing from server (deleted elsewhere)
+                // - PENDING_DELETE locally but missing from server (sync success but local cleanup missed)
+                val toDelete = localItems.filter { localItem ->
+                    val isMissingFromServer = !serverMap.containsKey(localItem.id)
+                    isMissingFromServer && (localItem.syncStatus == SyncStatus.SYNCED || localItem.syncStatus == SyncStatus.PENDING_DELETE)
+                }
+
+                if (toUpdateOrInsert.isNotEmpty()) {
+                    dao.insertApplications(toUpdateOrInsert)
+                }
+                if (toMarkConflicted.isNotEmpty()) {
+                    dao.insertApplications(toMarkConflicted)
+                }
+                if (toDelete.isNotEmpty()) {
+                    dao.deleteApplications(toDelete)
+                }
+
+                // Trigger sync of local changes whenever we refresh
+                scheduleSync()
+
                 Result.success(Unit)
             }
         } catch (e: Exception) {
@@ -91,6 +151,47 @@ class JobApplicationRepositoryImpl @Inject constructor (
             } else {
                 Result.failure(Exception("Application not found"))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteApplication(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val entity = dao.getApplicationById(id)
+            if (entity != null) {
+                if (entity.syncStatus == SyncStatus.PENDING_CREATE) {
+                    // Item never reached the server, just delete locally
+                    dao.deleteById(id)
+                } else {
+                    // Mark for deletion on server
+                    val updatedEntity = entity.copy(syncStatus = SyncStatus.PENDING_DELETE)
+                    dao.updateApplication(updatedEntity)
+                    scheduleSync()
+                }
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Application not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resolveKeepMine(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            dao.resolveKeepMine(id)
+            scheduleSync()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun resolveKeepServer(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            dao.resolveKeepServer(id)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

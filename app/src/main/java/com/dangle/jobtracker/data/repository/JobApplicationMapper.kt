@@ -14,7 +14,13 @@ fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
-        syncStatus = SyncStatus.SYNCED
+        syncStatus = SyncStatus.SYNCED,
+        version = version,
+        serverCompany = null,
+        serverPositionTitle = null,
+        serverStatus = null,
+        serverAppliedDate = null,
+        serverVersion = null
     )
 }
 
@@ -25,7 +31,13 @@ fun CreateJobApplicationMutation.CreateJobApplication.toEntity(): JobApplication
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
-        syncStatus = SyncStatus.SYNCED
+        syncStatus = SyncStatus.SYNCED,
+        version = version,
+        serverCompany = null,
+        serverPositionTitle = null,
+        serverStatus = null,
+        serverAppliedDate = null,
+        serverVersion = null
     )
 }
 
@@ -36,6 +48,29 @@ fun JobApplicationEntity.toDomain(): JobApplication {
         positionTitle = positionTitle,
         status = ApplicationStatus.fromString(status),
         appliedDate = appliedDate,
-        syncStatus = syncStatus
+        syncStatus = syncStatus,
+        version = version,
+        serverCompany = serverCompany,
+        serverPositionTitle = serverPositionTitle,
+        serverStatus = serverStatus?.let { ApplicationStatus.fromString(it) },
+        serverAppliedDate = serverAppliedDate,
+        serverVersion = serverVersion
+    )
+}
+
+fun JobApplication.toEntity(): JobApplicationEntity {
+    return JobApplicationEntity(
+        id = id,
+        companyName = companyName,
+        positionTitle = positionTitle,
+        status = status.name,
+        appliedDate = appliedDate,
+        syncStatus = syncStatus,
+        version = version,
+        serverCompany = serverCompany,
+        serverPositionTitle = serverPositionTitle,
+        serverStatus = serverStatus?.name,
+        serverAppliedDate = serverAppliedDate,
+        serverVersion = serverVersion
     )
 }

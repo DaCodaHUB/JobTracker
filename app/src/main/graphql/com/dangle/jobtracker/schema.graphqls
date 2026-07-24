@@ -9,6 +9,7 @@ type JobApplication {
   positionTitle: String!
   status: String!
   appliedDate: String!
+  version: Int!
 }
 
 type Query {
@@ -25,6 +26,6 @@ input CreateJobApplicationInput {
 
 type Mutation {
   createJobApplication(input: CreateJobApplicationInput!): JobApplication!
-  updateJobApplicationStatus(id: ID!, status: String!): JobApplication!
-  deleteJobApplication(id: ID!): Boolean!
+  updateJobApplicationStatus(id: ID!, status: String!, version: Int!): JobApplication!
+  deleteJobApplication(id: ID!, version: Int!): Boolean!
 }

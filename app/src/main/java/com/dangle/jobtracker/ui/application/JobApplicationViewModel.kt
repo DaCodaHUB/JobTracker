@@ -47,6 +47,9 @@ class JobApplicationViewModel @Inject constructor (
                     )
                 }
             }
+            is JobApplicationEvent.StatusChanged -> {
+                _uiState.update { it.copy(selectedStatus = event.status) }
+            }
             JobApplicationEvent.SaveClicked -> saveApplication()
         }
     }
@@ -62,7 +65,7 @@ class JobApplicationViewModel @Inject constructor (
             val result = repository.createApplication(
                 companyName = currentState.companyName,
                 positionTitle = currentState.positionTitle,
-                status = ApplicationStatus.APPLIED,
+                status = currentState.selectedStatus,
                 appliedDate = LocalDate.now().toString()
             )
 

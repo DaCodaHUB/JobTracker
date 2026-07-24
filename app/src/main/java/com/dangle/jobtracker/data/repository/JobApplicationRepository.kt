@@ -29,4 +29,10 @@ interface JobApplicationRepository {
     ): Result<JobApplication>
 
     suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit>
+
+    suspend fun deleteApplication(id: String): Result<Unit>
+
+    suspend fun resolveKeepMine(id: String): Result<Unit>
+
+    suspend fun resolveKeepServer(id: String): Result<Unit>
 }

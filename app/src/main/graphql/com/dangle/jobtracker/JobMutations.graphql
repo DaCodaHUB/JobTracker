@@ -6,18 +6,20 @@ mutation CreateJobApplication($input: CreateJobApplicationInput!) {
         positionTitle
         status
         appliedDate
+        version
     }
 }
 
 # Update Application Status
-mutation UpdateJobApplicationStatus($id: ID!, $status: String!) {
-    updateJobApplicationStatus(id: $id, status: $status) {
+mutation UpdateJobApplicationStatus($id: ID!, $status: String!, $version: Int!) {
+    updateJobApplicationStatus(id: $id, status: $status, version: $version) {
         id
         status
+        version
     }
 }
 
 # Delete Application
-mutation DeleteJobApplication($id: ID!) {
-    deleteJobApplication(id: $id)
+mutation DeleteJobApplication($id: ID!, $version: Int!) {
+    deleteJobApplication(id: $id, version: $version)
 }

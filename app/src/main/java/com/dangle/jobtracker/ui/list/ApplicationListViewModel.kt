@@ -3,6 +3,7 @@ package com.dangle.jobtracker.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
+import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,12 +17,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ApplicationListViewModel @Inject constructor (
+class ApplicationListViewModel @Inject constructor(
     private val repository: JobApplicationRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
-    private val _selectedStatus = MutableStateFlow<com.dangle.jobtracker.domain.model.ApplicationStatus?>(null)
+    private val _selectedStatus = MutableStateFlow<ApplicationStatus?>(null)
     private val _isLoading = MutableStateFlow(false)
 
     val uiState: StateFlow<ApplicationListUiState> = combine(
@@ -35,7 +36,8 @@ class ApplicationListViewModel @Inject constructor (
         val filtered = reconciled.filter { app ->
             val matchesSearch = query.isBlank() || app.companyName.contains(query, ignoreCase = true)
             val matchesStatus = status == null || app.status == status
-            matchesSearch && matchesStatus
+            val notDeleted = app.syncStatus != SyncStatus.PENDING_DELETE
+            matchesSearch && matchesStatus && notDeleted
         }
 
         ApplicationListUiState(
@@ -51,17 +53,16 @@ class ApplicationListViewModel @Inject constructor (
     )
 
     private fun reconcileApplications(all: List<JobApplication>): List<JobApplication> {
-        val synced = all.filter { it.syncStatus == SyncStatus.SYNCED }
         val pending = all.filter { it.syncStatus != SyncStatus.SYNCED }
+        if (pending.isEmpty()) return all
 
-        // Hide pending items that match a synced one (robust comparison)
-        val uniquePending = pending.filter { p ->
-            synced.none { s ->
-                s.companyName.trim().equals(p.companyName.trim(), ignoreCase = true) &&
-                s.positionTitle.trim().equals(p.positionTitle.trim(), ignoreCase = true)
-            }
+        val pendingKeys = pending.map { it.companyName.trim().lowercase() to it.positionTitle.trim().lowercase() }.toSet()
+
+        val filteredSynced = all.filter { s ->
+            s.syncStatus == SyncStatus.SYNCED && !pendingKeys.contains(s.companyName.trim().lowercase() to s.positionTitle.trim().lowercase())
         }
-        return synced + uniquePending
+        
+        return filteredSynced + pending
     }
 
     fun syncWithServer() {
@@ -85,6 +86,26 @@ class ApplicationListViewModel @Inject constructor (
             }
             is ApplicationListEvent.StatusSelected -> {
                 _selectedStatus.update { event.status }
+            }
+            is ApplicationListEvent.DeleteApplication -> {
+                viewModelScope.launch {
+                    repository.deleteApplication(event.id)
+                }
+            }
+            is ApplicationListEvent.UpdateApplicationStatus -> {
+                viewModelScope.launch {
+                    repository.updateStatus(event.id, event.status)
+                }
+            }
+            is ApplicationListEvent.ResolveKeepLocal -> {
+                viewModelScope.launch {
+                    repository.resolveKeepMine(event.id)
+                }
+            }
+            is ApplicationListEvent.ResolveKeepServer -> {
+                viewModelScope.launch {
+                    repository.resolveKeepServer(event.id)
+                }
             }
         }
     }

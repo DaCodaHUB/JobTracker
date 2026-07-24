@@ -2,8 +2,6 @@ package com.dangle.jobtracker.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.dangle.jobtracker.domain.model.ApplicationStatus
-import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 
 @Entity(tableName = "job_applications")
@@ -14,16 +12,11 @@ data class JobApplicationEntity(
     val positionTitle: String,
     val status: String,
     val appliedDate: String,
-    val syncStatus: SyncStatus = SyncStatus.SYNCED
+    val syncStatus: SyncStatus = SyncStatus.SYNCED,
+    val version: Int = 1,
+    val serverCompany: String? = null,
+    val serverPositionTitle: String? = null,
+    val serverStatus: String? = null,
+    val serverAppliedDate: String? = null,
+    val serverVersion: Int? = null
 )
-
-fun JobApplicationEntity.toDomainModel(): JobApplication {
-    return JobApplication(
-        id = id,
-        companyName = companyName,
-        positionTitle = positionTitle,
-        status = ApplicationStatus.fromString(status),
-        appliedDate = appliedDate,
-        syncStatus = syncStatus
-    )
-}

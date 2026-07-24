@@ -20,7 +20,8 @@ enum class SyncStatus {
     SYNCED,
     PENDING_CREATE,
     PENDING_UPDATE,
-    PENDING_DELETE
+    PENDING_DELETE,
+    CONFLICT
 }
 
 data class JobApplication(
@@ -29,5 +30,11 @@ data class JobApplication(
     val positionTitle: String,
     val status: ApplicationStatus,
     val appliedDate: String,
-    val syncStatus: SyncStatus = SyncStatus.SYNCED
+    val syncStatus: SyncStatus = SyncStatus.SYNCED,
+    val version: Int = 1,
+    val serverCompany: String? = null,
+    val serverPositionTitle: String? = null,
+    val serverStatus: ApplicationStatus? = null,
+    val serverAppliedDate: String? = null,
+    val serverVersion: Int? = null
 )

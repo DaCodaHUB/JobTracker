@@ -7,12 +7,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.SyncStatus
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
+import com.dangle.jobtracker.ui.list.components.ConflictResolutionDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,6 +24,56 @@ fun ApplicationListScreen(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var applicationToResolve by remember { mutableStateOf<JobApplication?>(null) }
+    var applicationToDelete by remember { mutableStateOf<JobApplication?>(null) }
+
+    if (applicationToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { applicationToDelete = null },
+            title = { Text("Delete Application") },
+            text = { Text("Are you sure you want to delete the application for ${applicationToDelete?.companyName}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        applicationToDelete?.let { onEvent(ApplicationListEvent.DeleteApplication(it.id)) }
+                        applicationToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { applicationToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (applicationToResolve != null) {
+        val app = applicationToResolve!!
+        ConflictResolutionDialog(
+            localApp = app,
+            serverApp = app.copy(
+                companyName = app.serverCompany ?: app.companyName,
+                positionTitle = app.serverPositionTitle ?: app.positionTitle,
+                status = app.serverStatus ?: app.status,
+                appliedDate = app.serverAppliedDate ?: app.appliedDate,
+                version = app.serverVersion ?: app.version
+            ),
+            onKeepLocal = {
+                onEvent(ApplicationListEvent.ResolveKeepLocal(app.id))
+                applicationToResolve = null
+            },
+            onKeepServer = {
+                onEvent(ApplicationListEvent.ResolveKeepServer(app.id))
+                applicationToResolve = null
+            },
+            onDismiss = { applicationToResolve = null }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -67,7 +119,19 @@ fun ApplicationListScreen(
                 ) { application ->
                     ApplicationCard(
                         application = application,
-                        onClick = { onEvent(ApplicationListEvent.ApplicationClicked(application.id)) }
+                        onClick = {
+                            if (application.syncStatus == SyncStatus.CONFLICT) {
+                                applicationToResolve = application
+                            } else {
+                                onEvent(ApplicationListEvent.ApplicationClicked(application.id))
+                            }
+                        },
+                        onDelete = {
+                            applicationToDelete = application
+                        },
+                        onStatusChange = { newStatus ->
+                            onEvent(ApplicationListEvent.UpdateApplicationStatus(application.id, newStatus))
+                        }
                     )
                 }
             }

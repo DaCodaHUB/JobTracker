@@ -12,9 +12,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.dangle.jobtracker.ui.application.JobApplicationRoute
 import com.dangle.jobtracker.ui.application.JobApplicationViewModel
 import com.dangle.jobtracker.ui.list.ApplicationListRoute
@@ -42,10 +39,10 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.ApplicationList.route
                     ) {
                         composable("application_list") {
-                            val viewModel: ApplicationListViewModel = hiltViewModel()
+                            val listViewModel: ApplicationListViewModel = hiltViewModel()
 
                             ApplicationListRoute(
-                                viewModel = viewModel,
+                                viewModel = listViewModel,
                                 onNavigateToAddApplication = {
                                     navController.navigate(Screen.AddApplication.route)
                                 }
@@ -53,10 +50,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Screen.AddApplication.route) {
-                            val viewModel: JobApplicationViewModel = hiltViewModel()
+                            val addViewModel: JobApplicationViewModel = hiltViewModel()
 
                             JobApplicationRoute(
-                                viewModel = viewModel,
+                                viewModel = addViewModel,
                                 onBackClick = {
                                     navController.popBackStack()
                                 }
