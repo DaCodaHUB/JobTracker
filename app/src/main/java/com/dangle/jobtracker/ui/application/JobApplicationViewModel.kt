@@ -15,18 +15,32 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
+/**
+ * ViewModel responsible for managing the state and logic of the Job Application creation screen.
+ * 
+ * It follows a Unidirectional Data Flow (UDF) pattern:
+ * - **State:** Exposed via [uiState] to the view.
+ * - **Events:** Received via [onEvent] from the view.
+ * - **Effects:** Emitted via [effect] for one-off UI actions like navigation.
+ */
 @HiltViewModel
 class JobApplicationViewModel @Inject constructor (
     private val repository: JobApplicationRepository
 ) : ViewModel() {
 
+    // Internal mutable state flow for the UI state
     private val _uiState = MutableStateFlow(JobApplicationUiState())
+    // Public read-only version of the UI state
     val uiState: StateFlow<JobApplicationUiState> = _uiState.asStateFlow()
 
-    // Single source of truth for UI effects (navigation, snackbars)
+    // Channel for one-off side effects (e.g., NavigateBack, ShowError)
     private val _effect = Channel<JobApplicationSideEffect>()
     val effect = _effect.receiveAsFlow()
 
+    /**
+     * Primary entry point for UI events.
+     * Centralizing event handling makes the logic easier to trace and test.
+     */
     fun onEvent(event: JobApplicationEvent) {
         when (event) {
             is JobApplicationEvent.CompanyNameChanged -> {
@@ -34,6 +48,7 @@ class JobApplicationViewModel @Inject constructor (
                     currentState.copy(
                         companyName = event.name,
                         companyNameError = null, // Clear error on typing
+                        // Re-evaluate submit button state based on new input
                         isSubmitEnabled = event.name.isNotBlank() && currentState.positionTitle.isNotBlank()
                     )
                 }
@@ -54,11 +69,16 @@ class JobApplicationViewModel @Inject constructor (
         }
     }
 
+    /**
+     * Triggers the application creation process in the repository.
+     * This method handles form locking, repository calls, and navigation effects.
+     */
     private fun saveApplication() {
         val currentState = _uiState.value
+        // Guard against invalid submissions or multiple clicks
         if (!currentState.isSubmitEnabled || currentState.isSubmitting) return
 
-        // Lock the form while submitting and clear any previous error
+        // Lock the form and clear any previous errors
         _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
 
         viewModelScope.launch {
@@ -71,6 +91,7 @@ class JobApplicationViewModel @Inject constructor (
 
             result.onSuccess {
                 _uiState.update { it.copy(isSubmitting = false) }
+                // Signal the view to navigate back on success
                 _effect.send(JobApplicationSideEffect.NavigateBack)
             }
 

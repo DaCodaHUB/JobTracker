@@ -17,6 +17,22 @@ import com.dangle.jobtracker.domain.model.SyncStatus
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
 import com.dangle.jobtracker.ui.list.components.ConflictResolutionDialog
 
+/**
+ * The primary list screen for job applications.
+ * 
+ * This composable manages the high-level UI state for the list, including:
+ * 1. Searching/filtering through the applications.
+ * 2. Handling deletion confirmations via an [AlertDialog].
+ * 3. Displaying conflict resolution comparisons using [ConflictResolutionDialog].
+ * 4. Utilizing [SharedTransitionScope] for smooth animations to the detail screen.
+ *
+ * @param uiState Current UI state containing the list of applications and search query.
+ * @param sharedTransitionScope The scope for shared element transitions.
+ * @param animatedVisibilityScope Scope for coordinating visibility-based animations.
+ * @param onEvent Callback for business events (e.g., deletions, search changes).
+ * @param onItemClick Callback when an application is tapped to view details.
+ * @param onAddClick Callback to navigate to the "Add Application" screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ApplicationListScreen(
@@ -28,9 +44,11 @@ fun ApplicationListScreen(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // UI-only state for managing dialog visibility
     var applicationToResolve by remember { mutableStateOf<JobApplication?>(null) }
     var applicationToDelete by remember { mutableStateOf<JobApplication?>(null) }
 
+    // Deletion confirmation workflow
     if (applicationToDelete != null) {
         AlertDialog(
             onDismissRequest = { applicationToDelete = null },
@@ -55,6 +73,7 @@ fun ApplicationListScreen(
         )
     }
 
+    // Sync conflict resolution workflow
     if (applicationToResolve != null) {
         val app = applicationToResolve!!
         ConflictResolutionDialog(
@@ -101,7 +120,7 @@ fun ApplicationListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Search Input Field
+            // Search Input Field: Updates the UI state immediately on change
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = { onEvent(ApplicationListEvent.SearchChanged(it)) },
@@ -111,7 +130,7 @@ fun ApplicationListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
-            // Optimized Lazy List with Stable Keys
+            // Optimized list with unique keys for recomposition performance
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -119,13 +138,14 @@ fun ApplicationListScreen(
             ) {
                 items(
                     items = uiState.applications,
-                    key = { application -> application.id } // Stable key for recomposition performance
+                    key = { application -> application.id }
                 ) { application ->
                     ApplicationCard(
                         application = application,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                         onClick = {
+                            // Intercept clicks on conflicted items to show the resolution dialog
                             if (application.syncStatus == SyncStatus.CONFLICT) {
                                 applicationToResolve = application
                             } else {

@@ -20,6 +20,15 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.IOException
 
+/**
+ * A [CoroutineWorker] responsible for synchronizing pending local changes with the remote server.
+ * 
+ * This worker:
+ * 1. Fetches all [JobApplicationEntity] with a non-SYNCED [SyncStatus].
+ * 2. Iterates through them and executes the corresponding GraphQL mutation.
+ * 3. Handles conflicts by fetching the latest server state and updating the local entity.
+ * 4. Categorizes errors into retriable (network) and fatal (logic/server) errors.
+ */
 @HiltWorker
 class SyncJobApplicationsWorker @AssistedInject constructor(
     @Assisted context: Context,
@@ -34,14 +43,19 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting sync work")
+        
+        // Fetch only items that need to be pushed to the server
         val pendingApplications = dao.getPendingApplications()
         Log.d(TAG, "Found ${pendingApplications.size} pending applications")
+        
         var hasNetworkError = false
         var hasFatalError = false
 
         for (entity in pendingApplications) {
             try {
                 Log.d(TAG, "Processing entity ${entity.id} with status ${entity.syncStatus}")
+                
+                // Route to the specific sync handler based on the pending action
                 when (entity.syncStatus) {
                     SyncStatus.PENDING_CREATE -> handleCreate(entity)
                     SyncStatus.PENDING_UPDATE -> handleUpdate(entity)
@@ -49,11 +63,14 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                     else -> continue
                 }
             } catch (e: ConflictException) {
+                // Server rejected the update because the version is stale.
+                // We fetch the latest server state to allow the user (or auto-logic) to resolve.
                 Log.w(TAG, "Conflict detected for entity ${entity.id}, fetching server state")
                 try {
                     val response = apolloClient.query(GetJobApplicationQuery(id = entity.id)).execute()
                     val serverApp = response.data?.jobApplication
                     if (serverApp != null) {
+                        // If the server data matches local intent, we auto-resolve to avoid bugging the user
                         if (entity.status == serverApp.status) {
                             Log.d(TAG, "Status matches server for ${entity.id}, auto-resolving conflict")
                             dao.updateApplication(entity.copy(
@@ -70,6 +87,7 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                                 serverVersion = null
                             ))
                         } else {
+                            // Data differs significantly: Mark as CONFLICT and store server snapshot for UI comparison
                             dao.updateApplication(entity.copy(
                                 syncStatus = SyncStatus.CONFLICT,
                                 serverCompany = serverApp.companyName,
@@ -80,7 +98,7 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                             ))
                         }
                     } else {
-                        // If it's gone from server, maybe we should just delete it or mark as conflict with null server data
+                        // Entity no longer exists on the server
                         dao.updateApplication(entity.copy(syncStatus = SyncStatus.CONFLICT))
                     }
                 } catch (fetchError: Exception) {
@@ -88,6 +106,7 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                     dao.updateApplication(entity.copy(syncStatus = SyncStatus.CONFLICT))
                 }
             } catch (e: Exception) {
+                // Categorize exceptions to decide whether to retry the worker later
                 when (e) {
                     is ApolloException, is IOException -> {
                         Log.e(TAG, "Retriable network error syncing entity ${entity.id}: ${e.message}")
@@ -103,20 +122,27 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
 
         return when {
             hasNetworkError -> {
+                // Transient error: WorkManager will retry based on backoff policy
                 Log.d(TAG, "Sync finished with network error, retrying")
                 Result.retry()
             }
             hasFatalError -> {
+                // Unrecoverable error: stop trying for this work instance
                 Log.d(TAG, "Sync finished with fatal error")
                 Result.failure()
             }
             else -> {
+                // All pending changes processed or marked appropriately
                 Log.d(TAG, "Sync finished successfully")
                 Result.success()
             }
         }
     }
 
+    /**
+     * Executes the create mutation. On success, replaces the temporary local entity 
+     * (with "local_" ID) with the official server entity.
+     */
     private suspend fun handleCreate(entity: JobApplicationEntity) {
         val response = apolloClient.mutation(
             CreateJobApplicationMutation(
@@ -139,6 +165,7 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
         val data = response.data?.createJobApplication
         Log.d(TAG, "Create response data: $data")
         if (data != null) {
+            // Delete local temp row and insert the official server-side row
             dao.deleteApplication(entity)
             dao.insertApplication(data.toEntity())
         } else {
@@ -146,6 +173,9 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
         }
     }
 
+    /**
+     * Executes the status update mutation using optimistic locking (version check).
+     */
     private suspend fun handleUpdate(entity: JobApplicationEntity) {
         val response = apolloClient.mutation(
             UpdateJobApplicationStatusMutation(
@@ -165,6 +195,7 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
         val updatedData = response.data?.updateJobApplicationStatus
         Log.d(TAG, "Update response data: $updatedData")
         if (updatedData != null) {
+            // Update successful: reset syncStatus and increment version
             dao.updateApplication(
                 entity.copy(
                     syncStatus = SyncStatus.SYNCED,
@@ -176,6 +207,9 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
         }
     }
 
+    /**
+     * Executes the deletion mutation on the server and cleans up local database on success.
+     */
     private suspend fun handleDelete(entity: JobApplicationEntity) {
         Log.d(TAG, "Syncing deletion for entity: ${entity.id}")
         val response = apolloClient.mutation(
@@ -199,9 +233,9 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
             Log.w(TAG, "Server returned false for deletion of ${entity.id}. It might have been already deleted.")
         }
         
-        // Either way, if there are no errors, we should remove it locally.
+        // Cleanup local storage now that the server is aware
         dao.deleteApplication(entity)
     }
 
-    private class ConflictException : Exception()
+    class ConflictException : Exception()
 }

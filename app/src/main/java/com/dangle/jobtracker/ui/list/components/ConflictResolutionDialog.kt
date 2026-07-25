@@ -20,6 +20,18 @@ import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 
+/**
+ * A dialog that presents a side-by-side comparison of local and server data when a sync conflict occurs.
+ * 
+ * This UI allows the user to manually resolve version mismatches by choosing either 
+ * the local "Mine" version or the remote "Server" version.
+ *
+ * @param localApp The current state of the application in the local database.
+ * @param serverApp A snapshot of the divergent state found on the server.
+ * @param onKeepLocal Callback to resolve by overwriting the server with local data.
+ * @param onKeepServer Callback to resolve by overwriting the local database with server data.
+ * @param onDismiss Callback to close the dialog without resolving.
+ */
 @Composable
 fun ConflictResolutionDialog(
     localApp: JobApplication,
@@ -78,6 +90,9 @@ fun ConflictResolutionDialog(
     )
 }
 
+/**
+ * Renders the header for the conflict comparison table.
+ */
 @Composable
 private fun ConflictHeader() {
     Row(
@@ -108,6 +123,10 @@ private fun ConflictHeader() {
     HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
 }
 
+/**
+ * Renders a single row in the conflict comparison table.
+ * Highlights the row in error color if the values differ.
+ */
 @Composable
 private fun ConflictRow(
     label: String,

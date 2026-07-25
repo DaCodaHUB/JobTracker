@@ -3,8 +3,6 @@ package com.dangle.jobtracker.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
-import com.dangle.jobtracker.domain.model.ApplicationStatus
-import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,34 +14,40 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel for the Application List screen.
+ * 
+ * It manages the UI state by combining data from the [JobApplicationRepository]
+ * with user-defined filters like search queries.
+ */
 @HiltViewModel
 class ApplicationListViewModel @Inject constructor(
     private val repository: JobApplicationRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
-    private val _selectedStatus = MutableStateFlow<ApplicationStatus?>(null)
     private val _isLoading = MutableStateFlow(false)
 
+    /**
+     * The combined UI state for the list screen.
+     * Logic here focuses on filtering and sorting data already reconciled by the Repository.
+     */
     val uiState: StateFlow<ApplicationListUiState> = combine(
         repository.getApplications(),
         _searchQuery,
-        _selectedStatus,
         _isLoading
-    ) { allApplications, query, status, isLoading ->
-        val reconciled = reconcileApplications(allApplications)
+    ) { allApplications, query, isLoading ->
         
-        val filtered = reconciled.filter { app ->
+        // Filter by search query and hide items marked for deletion
+        val filtered = allApplications.filter { app ->
             val matchesSearch = query.isBlank() || app.companyName.contains(query, ignoreCase = true)
-            val matchesStatus = status == null || app.status == status
             val notDeleted = app.syncStatus != SyncStatus.PENDING_DELETE
-            matchesSearch && matchesStatus && notDeleted
+            matchesSearch && notDeleted
         }
 
         ApplicationListUiState(
-            applications = filtered.sortedByDescending { it.appliedDate },
+            applications = filtered, // Sorting is handled at the DAO level
             searchQuery = query,
-            selectedStatus = status,
             isLoading = isLoading
         )
     }.stateIn(
@@ -52,19 +56,9 @@ class ApplicationListViewModel @Inject constructor(
         initialValue = ApplicationListUiState(isLoading = true)
     )
 
-    private fun reconcileApplications(all: List<JobApplication>): List<JobApplication> {
-        val pending = all.filter { it.syncStatus != SyncStatus.SYNCED }
-        if (pending.isEmpty()) return all
-
-        val pendingKeys = pending.map { it.companyName.trim().lowercase() to it.positionTitle.trim().lowercase() }.toSet()
-
-        val filteredSynced = all.filter { s ->
-            s.syncStatus == SyncStatus.SYNCED && !pendingKeys.contains(s.companyName.trim().lowercase() to s.positionTitle.trim().lowercase())
-        }
-        
-        return filteredSynced + pending
-    }
-
+    /**
+     * Manually triggers a refresh from the server.
+     */
     fun syncWithServer() {
         viewModelScope.launch {
             _isLoading.update { true }
@@ -73,19 +67,16 @@ class ApplicationListViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Centralized event handler for the list screen.
+     */
     fun onEvent(event: ApplicationListEvent) {
         when (event) {
             ApplicationListEvent.Refresh -> {
                 syncWithServer()
             }
-            is ApplicationListEvent.ApplicationClicked -> {
-                // TODO: Handle navigating to detail view or item selection
-            }
             is ApplicationListEvent.SearchChanged -> {
                 _searchQuery.update { event.query }
-            }
-            is ApplicationListEvent.StatusSelected -> {
-                _selectedStatus.update { event.status }
             }
             is ApplicationListEvent.DeleteApplication -> {
                 viewModelScope.launch {

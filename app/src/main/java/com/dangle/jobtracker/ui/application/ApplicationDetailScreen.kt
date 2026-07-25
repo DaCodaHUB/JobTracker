@@ -12,6 +12,18 @@ import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.ui.list.components.StatusBadge
 
+/**
+ * Displays the full details of a specific job application.
+ * 
+ * This screen supports:
+ * 1. Seamless Shared Element Transitions from the list via [SharedTransitionScope].
+ * 2. In-place status management using a Material 3 [ExposedDropdownMenuBox].
+ * 
+ * @param application The data model to display.
+ * @param animatedVisibilityScope Scope for coordinating Shared Element animations.
+ * @param onStatusChange Callback when the user modifies the application status.
+ * @param onBackClick Callback to return to the list screen.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SharedTransitionScope.ApplicationDetailScreen(
@@ -45,6 +57,7 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
+            // Container Shared Element: Uses sharedBounds to animate the card expansion
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -62,6 +75,7 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        // Text Shared Element: The company name "flies" into its new position
                         Text(
                             text = application.companyName,
                             style = MaterialTheme.typography.headlineMedium,
@@ -75,6 +89,7 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
+                    // Text Shared Element: The position title "flies" into its new position
                     Text(
                         text = application.positionTitle,
                         style = MaterialTheme.typography.titleLarge,
@@ -94,6 +109,7 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                     
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Material 3 Status Picker: Allows immediate local update via callback
                     ExposedDropdownMenuBox(
                         expanded = expanded,
                         onExpandedChange = { expanded = !expanded },

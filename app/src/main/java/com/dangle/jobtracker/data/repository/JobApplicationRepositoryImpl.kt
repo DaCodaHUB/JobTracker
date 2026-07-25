@@ -10,28 +10,53 @@ import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.data.worker.SyncJobApplicationsWorker
+import com.dangle.jobtracker.di.IoDispatcher
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 
+/**
+ * Implementation of [JobApplicationRepository] following the Single Source of Truth (SSOT) pattern.
+ *
+ * This repository manages job application data by prioritizing a local Room database as the primary data source.
+ * It handles offline-first capabilities by:
+ * 1. Performing immediate local updates with a [SyncStatus] flag.
+ * 2. Scheduling background synchronization using [WorkManager].
+ * 3. Reconciling local data with remote server state during refresh operations.
+ *
+ * @property apolloClient GraphQL client for remote communication.
+ * @property dao Local Data Access Object for Room database operations.
+ * @property workManager Manager for scheduling background sync tasks.
+ * @property ioDispatcher Dispatcher for executing blocking I/O operations.
+ */
 class JobApplicationRepositoryImpl @Inject constructor (
     private val apolloClient: ApolloClient,
     private val dao: JobApplicationDao,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : JobApplicationRepository {
 
+    /**
+     * Observes a stream of job applications from the local database.
+     * The UI should observe this flow to stay in sync with the SSOT.
+     */
     override fun getApplications(): Flow<List<JobApplication>> {
         return dao.getAllApplications().map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
+    /**
+     * Enqueues a [SyncJobApplicationsWorker] to push pending local changes to the server.
+     * Uses [ExistingWorkPolicy.REPLACE] to ensure any previous pending sync is updated
+     * with the latest local state.
+     */
     override fun scheduleSync() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -47,7 +72,18 @@ class JobApplicationRepositoryImpl @Inject constructor (
         )
     }
 
-    override suspend fun refreshApplications(): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * Fetches the latest data from the server and reconciles it with the local database.
+     *
+     * The reconciliation logic handles:
+     * - **Inserts/Updates:** Adds new items or updates local items if the server version is higher.
+     * - **Auto-resolution:** If a local item has a version mismatch but the business data (status)
+     *   is identical, it updates the version and marks it as SYNCED.
+     * - **Conflicts:** If a local item has pending changes and the server version is higher
+     *   with different data, the item is marked as CONFLICT for user resolution.
+     * - **Deletions:** Removes local items that are marked as SYNCED but are missing from the server.
+     */
+    override suspend fun refreshApplications(): Result<Unit> = withContext(ioDispatcher) {
         try {
             val response = apolloClient.query(GetJobApplicationsQuery()).execute()
             val serverItems = response.data?.jobApplications
@@ -59,23 +95,25 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 val localItems = dao.getAllApplicationsSync()
                 val localMap = localItems.associateBy { it.id }
                 val serverMap = serverItems.associateBy { it.id }
-
-                // 1. Identify items to update, insert, or mark as conflicted
+                
                 val toUpdateOrInsert = mutableListOf<JobApplicationEntity>()
                 val toMarkConflicted = mutableListOf<JobApplicationEntity>()
 
                 serverItems.forEach { serverItem ->
                     val localItem = localMap[serverItem.id]
+                    // Only process if the item is new or the server has a newer version
                     if (localItem == null || localItem.version < serverItem.version) {
+                        
+                        // Auto-resolve if the status is already the same despite being unsynced
                         val shouldAutoResolve = localItem != null && 
                                 localItem.syncStatus != SyncStatus.SYNCED && 
                                 localItem.status == serverItem.status
 
                         if (localItem == null || localItem.syncStatus == SyncStatus.SYNCED || shouldAutoResolve) {
-                            // New item, synced item update, or auto-resolved conflict
+                            // Safe to overwrite local with server data
                             toUpdateOrInsert.add(serverItem.toEntity())
                         } else {
-                            // Actual conflict
+                            // Divergent change: Mark as conflict and store server data for resolution UI
                             toMarkConflicted.add(
                                 localItem.copy(
                                     syncStatus = SyncStatus.CONFLICT,
@@ -89,10 +127,8 @@ class JobApplicationRepositoryImpl @Inject constructor (
                         }
                     }
                 }
-
-                // 2. Identify items to delete:
-                // - SYNCED locally but missing from server (deleted elsewhere)
-                // - PENDING_DELETE locally but missing from server (sync success but local cleanup missed)
+                
+                // Identify items that were deleted on the server but are still present locally as SYNCED
                 val toDelete = localItems.filter { localItem ->
                     val isMissingFromServer = !serverMap.containsKey(localItem.id)
                     isMissingFromServer && (localItem.syncStatus == SyncStatus.SYNCED || localItem.syncStatus == SyncStatus.PENDING_DELETE)
@@ -107,8 +143,8 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 if (toDelete.isNotEmpty()) {
                     dao.deleteApplications(toDelete)
                 }
-
-                // Trigger sync of local changes whenever we refresh
+                
+                // Trigger a push of any local changes that might have been detected/created during refresh
                 scheduleSync()
 
                 Result.success(Unit)
@@ -118,12 +154,16 @@ class JobApplicationRepositoryImpl @Inject constructor (
         }
     }
 
+    /**
+     * Creates a new job application locally with [SyncStatus.PENDING_CREATE].
+     * Generates a temporary local ID prefixed with "local_".
+     */
     override suspend fun createApplication(
         companyName: String,
         positionTitle: String,
         status: ApplicationStatus,
         appliedDate: String
-    ): Result<JobApplication> = withContext(Dispatchers.IO) {
+    ): Result<JobApplication> = withContext(ioDispatcher) {
         val initialEntity = JobApplicationEntity(
             id = "local_${UUID.randomUUID()}",
             companyName = companyName, positionTitle = positionTitle,
@@ -137,7 +177,11 @@ class JobApplicationRepositoryImpl @Inject constructor (
         Result.success(initialEntity.toDomain())
     }
 
-    override suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * Updates the status of an existing application.
+     * If the item was already [SyncStatus.SYNCED], it marks it as [SyncStatus.PENDING_UPDATE].
+     */
+    override suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit> = withContext(ioDispatcher) {
         try {
             val entity = dao.getApplicationById(id)
             if (entity != null) {
@@ -156,7 +200,12 @@ class JobApplicationRepositoryImpl @Inject constructor (
         }
     }
 
-    override suspend fun deleteApplication(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * Deletes an application.
+     * - If the item is PENDING_CREATE (local only), it is hard-deleted immediately.
+     * - Otherwise, it is marked as PENDING_DELETE to be synced with the server later.
+     */
+    override suspend fun deleteApplication(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             val entity = dao.getApplicationById(id)
             if (entity != null) {
@@ -178,7 +227,10 @@ class JobApplicationRepositoryImpl @Inject constructor (
         }
     }
 
-    override suspend fun resolveKeepMine(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * Resolves a conflict by overwriting server data with local pending changes.
+     */
+    override suspend fun resolveKeepMine(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             dao.resolveKeepMine(id)
             scheduleSync()
@@ -188,7 +240,10 @@ class JobApplicationRepositoryImpl @Inject constructor (
         }
     }
 
-    override suspend fun resolveKeepServer(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+    /**
+     * Resolves a conflict by overwriting local changes with server data.
+     */
+    override suspend fun resolveKeepServer(id: String): Result<Unit> = withContext(ioDispatcher) {
         try {
             dao.resolveKeepServer(id)
             Result.success(Unit)
