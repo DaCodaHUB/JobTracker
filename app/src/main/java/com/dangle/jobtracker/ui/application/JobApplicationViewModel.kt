@@ -27,6 +27,12 @@ class JobApplicationViewModel @Inject constructor (
     private val _effect = Channel<JobApplicationSideEffect>()
     val effect = _effect.receiveAsFlow()
 
+    init {
+        viewModelScope.launch {
+            repository.observeRealtimeUpdates().collect { }
+        }
+    }
+
     fun onEvent(event: JobApplicationEvent) {
         when (event) {
             is JobApplicationEvent.CompanyNameChanged -> {

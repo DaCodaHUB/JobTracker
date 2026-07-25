@@ -1,6 +1,7 @@
 package com.dangle.jobtracker.di
 
 import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.network.websocket.WebSocketNetworkTransport
 import com.dangle.jobtracker.BuildConfig
 import dagger.Module
 import dagger.Provides
@@ -15,8 +16,16 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideApolloClient(): ApolloClient {
+        val serverUrl = BuildConfig.BASE_URL
+        val webSocketUrl = serverUrl.replace("http", "ws")
+        
         return ApolloClient.Builder()
-            .serverUrl(BuildConfig.BASE_URL)
+            .serverUrl(serverUrl)
+            .subscriptionNetworkTransport(
+                WebSocketNetworkTransport.Builder()
+                    .serverUrl(webSocketUrl)
+                    .build()
+            )
             .build()
     }
 }

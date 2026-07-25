@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.apollographql.apollo.ApolloClient
 import com.dangle.jobtracker.GetJobApplicationsQuery
+import com.dangle.jobtracker.OnJobApplicationUpdatedSubscription
 import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.data.worker.SyncJobApplicationsWorker
@@ -15,7 +16,9 @@ import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
@@ -30,6 +33,21 @@ class JobApplicationRepositoryImpl @Inject constructor (
         return dao.getAllApplications().map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    override fun observeRealtimeUpdates(): Flow<Unit> {
+        return apolloClient.subscription(OnJobApplicationUpdatedSubscription()).toFlow()
+            .onEach { response ->
+                val updatedApp = response.data?.jobApplicationUpdated
+                if (updatedApp != null) {
+                    android.util.Log.d("JobRepository", "Received realtime update for ${updatedApp.id}")
+                    dao.insertApplication(updatedApp.toEntity())
+                }
+            }
+            .map { } // Return Unit flow
+            .catch { e -> 
+                android.util.Log.e("JobRepository", "Subscription error", e)
+            }
     }
 
     override fun scheduleSync() {

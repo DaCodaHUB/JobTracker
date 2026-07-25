@@ -3,12 +3,11 @@ package com.dangle.jobtracker.data.repository
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.SyncStatus
-import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
 
 class FakeJobApplicationRepository : JobApplicationRepository {
     
@@ -20,13 +19,17 @@ class FakeJobApplicationRepository : JobApplicationRepository {
 
     override fun getApplications(): Flow<List<JobApplication>> = _applicationsFlow.asStateFlow()
 
-    override fun scheduleSync() {
-        // No-op in fake
-    }
-
     override suspend fun refreshApplications(): Result<Unit> {
         delay(500)
         return Result.success(Unit)
+    }
+
+    override fun observeRealtimeUpdates(): Flow<Unit> = flow {
+        // No-op in fake
+    }
+
+    override fun scheduleSync() {
+        // No-op in fake
     }
 
     override suspend fun createApplication(

@@ -36,6 +36,13 @@ class JobTrackerApplication : Application(), Configuration.Provider {
         super.onCreate()
         Log.d(TAG, "Application created")
         observeConnectivity()
+        startSubscription()
+    }
+
+    private fun startSubscription() {
+        applicationScope.launch {
+            repository.observeRealtimeUpdates().collect { }
+        }
     }
 
     private fun observeConnectivity() {

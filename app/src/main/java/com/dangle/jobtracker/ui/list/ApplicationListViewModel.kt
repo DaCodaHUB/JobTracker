@@ -25,6 +25,12 @@ class ApplicationListViewModel @Inject constructor(
     private val _selectedStatus = MutableStateFlow<ApplicationStatus?>(null)
     private val _isLoading = MutableStateFlow(false)
 
+    init {
+        viewModelScope.launch {
+            repository.observeRealtimeUpdates().collect { }
+        }
+    }
+
     val uiState: StateFlow<ApplicationListUiState> = combine(
         repository.getApplications(),
         _searchQuery,

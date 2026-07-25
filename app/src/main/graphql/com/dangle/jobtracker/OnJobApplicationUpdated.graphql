@@ -1,0 +1,10 @@
+subscription OnJobApplicationUpdated {
+  jobApplicationUpdated {
+    id
+    companyName
+    positionTitle
+    status
+    appliedDate
+    version
+  }
+}

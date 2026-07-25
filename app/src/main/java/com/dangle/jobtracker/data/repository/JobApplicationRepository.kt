@@ -17,6 +17,11 @@ interface JobApplicationRepository {
     suspend fun refreshApplications(): Result<Unit>
 
     /**
+     * Start observing real-time updates from the network via GraphQL subscriptions.
+     */
+    fun observeRealtimeUpdates(): Flow<Unit>
+
+    /**
      * Schedule a sync of any locally saved applications that haven't been pushed to the server yet.
      */
     fun scheduleSync()
