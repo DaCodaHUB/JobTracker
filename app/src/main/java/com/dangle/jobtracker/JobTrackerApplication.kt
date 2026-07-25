@@ -5,12 +5,9 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
-import com.dangle.jobtracker.util.ConnectivityObserver
+import com.dangle.jobtracker.data.sync.SyncManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,33 +25,21 @@ class JobTrackerApplication : Application(), Configuration.Provider {
     lateinit var repository: JobApplicationRepository
 
     @Inject
-    lateinit var connectivityObserver: ConnectivityObserver
+    lateinit var syncManager: SyncManager
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    @Inject
+    lateinit var applicationScope: CoroutineScope
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Application created")
-        observeConnectivity()
+        syncManager.startMonitoring()
         startSubscription()
     }
 
     private fun startSubscription() {
         applicationScope.launch {
             repository.observeRealtimeUpdates().collect { }
-        }
-    }
-
-    private fun observeConnectivity() {
-        applicationScope.launch {
-            connectivityObserver.isConnected.collectLatest { isConnected ->
-                Log.d(TAG, "Connectivity changed: isConnected = $isConnected")
-                if (isConnected) {
-                    Log.d(TAG, "Network restored, refreshing and scheduling sync")
-                    repository.refreshApplications()
-                    repository.scheduleSync()
-                }
-            }
         }
     }
 

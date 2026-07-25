@@ -115,7 +115,7 @@ fun ApplicationListScreen(
             ) {
                 items(
                     items = uiState.applications,
-                    key = { application -> application.id } // Stable key for recomposition performance
+                    key = { application -> application.id }
                 ) { application ->
                     ApplicationCard(
                         application = application,

@@ -1,25 +1,35 @@
 package com.dangle.jobtracker.data.repository
 
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.exception.ApolloException
+import com.dangle.jobtracker.CreateJobApplicationMutation
+import com.dangle.jobtracker.DeleteJobApplicationMutation
+import com.dangle.jobtracker.GetJobApplicationQuery
 import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.OnJobApplicationUpdatedSubscription
+import com.dangle.jobtracker.UpdateJobApplicationStatusMutation
 import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
-import com.dangle.jobtracker.data.worker.SyncJobApplicationsWorker
+import com.dangle.jobtracker.data.worker.SyncWorker
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
+import com.dangle.jobtracker.type.CreateJobApplicationInput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 
@@ -28,6 +38,13 @@ class JobApplicationRepositoryImpl @Inject constructor (
     private val dao: JobApplicationDao,
     private val workManager: WorkManager
 ) : JobApplicationRepository {
+
+    private val syncMutex = Mutex()
+
+    companion object {
+        private const val TAG = "JobRepository"
+        private const val SYNC_WORK_NAME = "JobTrackerSyncWork"
+    }
 
     override fun getApplications(): Flow<List<JobApplication>> {
         return dao.getAllApplications().map { entities ->
@@ -40,99 +57,214 @@ class JobApplicationRepositoryImpl @Inject constructor (
             .onEach { response ->
                 val updatedApp = response.data?.jobApplicationUpdated
                 if (updatedApp != null) {
-                    android.util.Log.d("JobRepository", "Received realtime update for ${updatedApp.id}")
-                    dao.insertApplication(updatedApp.toEntity())
+                    syncMutex.withLock {
+                        Log.d(TAG, "Subscription update for ${updatedApp.companyName}")
+                        upsertSafely(updatedApp.toEntity())
+                    }
                 }
             }
-            .map { } // Return Unit flow
+            .map { }
             .catch { e -> 
-                android.util.Log.e("JobRepository", "Subscription error", e)
+                Log.e(TAG, "Subscription error", e)
             }
     }
+
+    override suspend fun pushPendingMutations(): Result<Unit> = withContext(Dispatchers.IO) {
+        syncMutex.withLock {
+            try {
+                val pending = dao.getPendingApplications()
+                Log.d(TAG, "Pushing ${pending.size} pending changes")
+                
+                for (entity in pending) {
+                    val current = dao.getApplicationById(entity.id)
+                    if (current == null || current.syncStatus == SyncStatus.SYNCED) continue
+
+                    try {
+                        when (current.syncStatus) {
+                            SyncStatus.PENDING_CREATE -> handleCreate(current)
+                            SyncStatus.PENDING_UPDATE -> handleUpdate(current)
+                            SyncStatus.PENDING_DELETE -> handleDelete(current)
+                            else -> continue
+                        }
+                    } catch (e: ConflictException) {
+                        handleConflict(current)
+                    }
+                }
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Push failed", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    private suspend fun handleCreate(entity: JobApplicationEntity) {
+        val response = apolloClient.mutation(
+            CreateJobApplicationMutation(
+                input = CreateJobApplicationInput(
+                    companyName = entity.companyName,
+                    positionTitle = entity.positionTitle,
+                    status = entity.status,
+                    appliedDate = entity.appliedDate
+                )
+            )
+        ).execute()
+
+        if (response.hasErrors()) {
+            if (response.errors?.any { it.extensions?.get("code") == "CONFLICT" } == true) {
+                throw ConflictException()
+            }
+            throw Exception("Create failed")
+        }
+
+        val data = response.data?.createJobApplication
+        if (data != null) {
+            dao.replaceLocalWithServer(entity, data.toEntity())
+        }
+    }
+
+    private suspend fun handleUpdate(entity: JobApplicationEntity) {
+        val response = apolloClient.mutation(
+            UpdateJobApplicationStatusMutation(
+                id = entity.id,
+                status = entity.status,
+                version = entity.version
+            )
+        ).execute()
+
+        if (response.hasErrors()) {
+            if (response.errors?.any { it.extensions?.get("code") == "CONFLICT" } == true) {
+                throw ConflictException()
+            }
+            throw Exception("Update failed")
+        }
+
+        val updated = response.data?.updateJobApplicationStatus
+        if (updated != null) {
+            val local = dao.getApplicationById(updated.id)
+            if (local != null) {
+                dao.updateApplication(local.copy(
+                    status = updated.status,
+                    version = updated.version,
+                    syncStatus = SyncStatus.SYNCED
+                ))
+            }
+        }
+    }
+
+    private suspend fun handleDelete(entity: JobApplicationEntity) {
+        val response = apolloClient.mutation(
+            DeleteJobApplicationMutation(id = entity.id, version = entity.version)
+        ).execute()
+
+        if (!response.hasErrors()) {
+            dao.deleteApplication(entity)
+        } else if (response.errors?.any { it.extensions?.get("code") == "CONFLICT" } == true) {
+            throw ConflictException()
+        }
+    }
+
+    private suspend fun handleConflict(entity: JobApplicationEntity) {
+        val response = apolloClient.query(GetJobApplicationQuery(id = entity.id)).execute()
+        val serverApp = response.data?.jobApplication
+        if (serverApp != null) {
+            if (entity.status == serverApp.status) {
+                dao.replaceLocalWithServer(entity, serverApp.toEntity())
+            } else {
+                dao.updateApplication(entity.copy(
+                    syncStatus = SyncStatus.CONFLICT,
+                    serverCompany = serverApp.companyName,
+                    serverPositionTitle = serverApp.positionTitle,
+                    serverStatus = serverApp.status,
+                    serverAppliedDate = serverApp.appliedDate,
+                    serverVersion = serverApp.version
+                ))
+            }
+        } else {
+            dao.deleteApplication(entity)
+        }
+    }
+
+    override suspend fun pullRemoteUpdates(): Result<Unit> = refreshApplications()
 
     override fun scheduleSync() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<SyncJobApplicationsWorker>()
+        val workRequest = OneTimeWorkRequestBuilder<SyncWorker>()
             .setConstraints(constraints)
             .build()
-        workManager.enqueueUniqueWork(
-            "SyncJobApplicationsWork",
-            ExistingWorkPolicy.REPLACE,
-            workRequest
-        )
+        workManager.enqueueUniqueWork(SYNC_WORK_NAME, ExistingWorkPolicy.KEEP, workRequest)
     }
 
     override suspend fun refreshApplications(): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val response = apolloClient.query(GetJobApplicationsQuery()).execute()
-            val serverItems = response.data?.jobApplications
-            
-            if (response.hasErrors() || serverItems == null) {
-                val errorMessage = response.errors?.firstOrNull()?.message ?: "Fetch failed"
-                Result.failure(Exception(errorMessage))
-            } else {
-                val localItems = dao.getAllApplicationsSync()
-                val localMap = localItems.associateBy { it.id }
-                val serverMap = serverItems.associateBy { it.id }
+        syncMutex.withLock {
+            try {
+                val response = apolloClient.query(GetJobApplicationsQuery()).execute()
+                val serverItems = response.data?.jobApplications
+                if (response.hasErrors() || serverItems == null) {
+                    Result.failure(Exception("Refresh failed"))
+                } else {
+                    val localItems = dao.getAllApplicationsSync()
+                    val serverMap = serverItems.associateBy { it.id }
 
-                // 1. Identify items to update, insert, or mark as conflicted
-                val toUpdateOrInsert = mutableListOf<JobApplicationEntity>()
-                val toMarkConflicted = mutableListOf<JobApplicationEntity>()
+                    serverItems.forEach { upsertSafely(it.toEntity()) }
 
-                serverItems.forEach { serverItem ->
-                    val localItem = localMap[serverItem.id]
-                    if (localItem == null || localItem.version < serverItem.version) {
-                        val shouldAutoResolve = localItem != null && 
-                                localItem.syncStatus != SyncStatus.SYNCED && 
-                                localItem.status == serverItem.status
-
-                        if (localItem == null || localItem.syncStatus == SyncStatus.SYNCED || shouldAutoResolve) {
-                            // New item, synced item update, or auto-resolved conflict
-                            toUpdateOrInsert.add(serverItem.toEntity())
-                        } else {
-                            // Actual conflict
-                            toMarkConflicted.add(
-                                localItem.copy(
-                                    syncStatus = SyncStatus.CONFLICT,
-                                    serverCompany = serverItem.companyName,
-                                    serverPositionTitle = serverItem.positionTitle,
-                                    serverStatus = serverItem.status,
-                                    serverAppliedDate = serverItem.appliedDate,
-                                    serverVersion = serverItem.version
-                                )
-                            )
-                        }
+                    val toDelete = localItems.filter { 
+                        it.syncStatus == SyncStatus.SYNCED && !serverMap.containsKey(it.id) 
                     }
+                    if (toDelete.isNotEmpty()) dao.deleteApplications(toDelete)
+                    
+                    scheduleSync()
+                    Result.success(Unit)
                 }
-
-                // 2. Identify items to delete:
-                // - SYNCED locally but missing from server (deleted elsewhere)
-                // - PENDING_DELETE locally but missing from server (sync success but local cleanup missed)
-                val toDelete = localItems.filter { localItem ->
-                    val isMissingFromServer = !serverMap.containsKey(localItem.id)
-                    isMissingFromServer && (localItem.syncStatus == SyncStatus.SYNCED || localItem.syncStatus == SyncStatus.PENDING_DELETE)
-                }
-
-                if (toUpdateOrInsert.isNotEmpty()) {
-                    dao.insertApplications(toUpdateOrInsert)
-                }
-                if (toMarkConflicted.isNotEmpty()) {
-                    dao.insertApplications(toMarkConflicted)
-                }
-                if (toDelete.isNotEmpty()) {
-                    dao.deleteApplications(toDelete)
-                }
-
-                // Trigger sync of local changes whenever we refresh
-                scheduleSync()
-
-                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
+        }
+    }
+
+    private suspend fun upsertSafely(serverEntity: JobApplicationEntity) {
+        val localById = dao.getApplicationById(serverEntity.id)
+        if (localById != null) {
+            processUpdate(localById, serverEntity)
+            return
+        }
+
+        val match = dao.findAnyMatchByBusinessKey(serverEntity.companyName, serverEntity.positionTitle)
+        if (match != null) {
+            if (match.syncStatus == SyncStatus.PENDING_DELETE) return
+            if (match.id != serverEntity.id) {
+                dao.replaceLocalWithServer(match, serverEntity)
+            } else {
+                dao.insertApplication(serverEntity)
+            }
+            return
+        }
+
+        dao.insertApplication(serverEntity)
+    }
+
+    private suspend fun processUpdate(local: JobApplicationEntity, server: JobApplicationEntity) {
+        if (local.syncStatus == SyncStatus.PENDING_DELETE) return
+        if (local.syncStatus == SyncStatus.SYNCED) {
+            if (server.version >= local.version) dao.insertApplication(server)
+            return
+        }
+
+        if (server.version > local.version) {
+            if (local.status != server.status) {
+                dao.updateApplication(local.copy(
+                    serverCompany = server.companyName,
+                    serverPositionTitle = server.positionTitle,
+                    serverStatus = server.status,
+                    serverAppliedDate = server.appliedDate,
+                    serverVersion = server.version,
+                    syncStatus = SyncStatus.CONFLICT
+                ))
+            } else {
+                dao.insertApplication(server)
+            }
         }
     }
 
@@ -149,9 +281,7 @@ class JobApplicationRepositoryImpl @Inject constructor (
             syncStatus = SyncStatus.PENDING_CREATE
         )
         dao.insertApplication(initialEntity)
-
         scheduleSync()
-
         Result.success(initialEntity.toDomain())
     }
 
@@ -167,7 +297,7 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 scheduleSync()
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Application not found"))
+                Result.failure(Exception("Not found"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -179,17 +309,15 @@ class JobApplicationRepositoryImpl @Inject constructor (
             val entity = dao.getApplicationById(id)
             if (entity != null) {
                 if (entity.syncStatus == SyncStatus.PENDING_CREATE) {
-                    // Item never reached the server, just delete locally
                     dao.deleteById(id)
                 } else {
-                    // Mark for deletion on server
                     val updatedEntity = entity.copy(syncStatus = SyncStatus.PENDING_DELETE)
                     dao.updateApplication(updatedEntity)
                     scheduleSync()
                 }
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Application not found"))
+                Result.failure(Exception("Not found"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -214,4 +342,6 @@ class JobApplicationRepositoryImpl @Inject constructor (
             Result.failure(e)
         }
     }
+
+    private class ConflictException : Exception()
 }

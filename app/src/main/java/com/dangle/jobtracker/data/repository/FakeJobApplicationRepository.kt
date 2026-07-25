@@ -28,6 +28,14 @@ class FakeJobApplicationRepository : JobApplicationRepository {
         // No-op in fake
     }
 
+    override suspend fun pushPendingMutations(): Result<Unit> {
+        return Result.success(Unit)
+    }
+
+    override suspend fun pullRemoteUpdates(): Result<Unit> {
+        return Result.success(Unit)
+    }
+
     override fun scheduleSync() {
         // No-op in fake
     }

@@ -22,6 +22,16 @@ interface JobApplicationRepository {
     fun observeRealtimeUpdates(): Flow<Unit>
 
     /**
+     * Push unsynced local changes to the server.
+     */
+    suspend fun pushPendingMutations(): Result<Unit>
+
+    /**
+     * Fetch the latest updates from the server and sync to the local database.
+     */
+    suspend fun pullRemoteUpdates(): Result<Unit>
+
+    /**
      * Schedule a sync of any locally saved applications that haven't been pushed to the server yet.
      */
     fun scheduleSync()

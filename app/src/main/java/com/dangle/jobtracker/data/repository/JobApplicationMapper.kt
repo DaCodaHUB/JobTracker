@@ -1,6 +1,7 @@
 package com.dangle.jobtracker.data.repository
 
 import com.dangle.jobtracker.CreateJobApplicationMutation
+import com.dangle.jobtracker.GetJobApplicationQuery
 import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.OnJobApplicationUpdatedSubscription
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
@@ -9,6 +10,23 @@ import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 
 fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
+    return JobApplicationEntity(
+        id = id,
+        companyName = companyName,
+        positionTitle = positionTitle,
+        status = status,
+        appliedDate = appliedDate,
+        syncStatus = SyncStatus.SYNCED,
+        version = version,
+        serverCompany = null,
+        serverPositionTitle = null,
+        serverStatus = null,
+        serverAppliedDate = null,
+        serverVersion = null
+    )
+}
+
+fun GetJobApplicationQuery.JobApplication.toEntity(): JobApplicationEntity {
     return JobApplicationEntity(
         id = id,
         companyName = companyName,

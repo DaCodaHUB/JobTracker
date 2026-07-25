@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.core.content.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -14,38 +15,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ConnectivityObserver @Inject constructor(
+class NetworkMonitor @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val connectivityManager =
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val connectivityManager = context.getSystemService<ConnectivityManager>()
 
-    val isConnected: Flow<Boolean> = callbackFlow {
+    val isOnline: Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                super.onAvailable(network)
                 trySend(true)
             }
 
             override fun onLost(network: Network) {
-                super.onLost(network)
                 trySend(false)
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                trySend(hasInternet)
             }
         }
 
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
-        connectivityManager.registerNetworkCallback(request, callback)
+        
+        connectivityManager?.registerNetworkCallback(request, callback)
 
-        // Initial state
-        val initialNetwork = connectivityManager.activeNetwork
-        val initialCapabilities = connectivityManager.getNetworkCapabilities(initialNetwork)
-        val initialIsConnected = initialCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-        trySend(initialIsConnected)
+        val initialValue = connectivityManager?.activeNetwork?.let {
+            connectivityManager.getNetworkCapabilities(it)
+        }?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
+        trySend(initialValue)
 
         awaitClose {
-            connectivityManager.unregisterNetworkCallback(callback)
+            connectivityManager?.unregisterNetworkCallback(callback)
         }
     }.distinctUntilChanged()
 }
