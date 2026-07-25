@@ -1,6 +1,8 @@
-// feature/applicationlist/ApplicationListScreen.kt
 package com.dangle.jobtracker.ui.list
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,17 +12,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
 import com.dangle.jobtracker.ui.list.components.ConflictResolutionDialog
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ApplicationListScreen(
     uiState: ApplicationListUiState,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onEvent: (ApplicationListEvent) -> Unit,
+    onItemClick: (String) -> Unit,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -119,18 +123,17 @@ fun ApplicationListScreen(
                 ) { application ->
                     ApplicationCard(
                         application = application,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                         onClick = {
                             if (application.syncStatus == SyncStatus.CONFLICT) {
                                 applicationToResolve = application
                             } else {
-                                onEvent(ApplicationListEvent.ApplicationClicked(application.id))
+                                onItemClick(application.id)
                             }
                         },
                         onDelete = {
                             applicationToDelete = application
-                        },
-                        onStatusChange = { newStatus ->
-                            onEvent(ApplicationListEvent.UpdateApplicationStatus(application.id, newStatus))
                         }
                     )
                 }
