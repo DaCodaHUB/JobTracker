@@ -14,6 +14,9 @@ fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
+        location = "", // Note: Update this if server starts returning location
+        jobUrl = "",
+        notes = "",
         syncStatus = SyncStatus.SYNCED,
         version = version,
         serverCompany = null,
@@ -31,6 +34,9 @@ fun CreateJobApplicationMutation.CreateJobApplication.toEntity(): JobApplication
         positionTitle = positionTitle,
         status = status,
         appliedDate = appliedDate,
+        location = "", // Note: Update this if mutation starts returning location
+        jobUrl = "",
+        notes = "",
         syncStatus = SyncStatus.SYNCED,
         version = version,
         serverCompany = null,
@@ -48,12 +54,18 @@ fun JobApplicationEntity.toDomain(): JobApplication {
         positionTitle = positionTitle,
         status = ApplicationStatus.fromString(status),
         appliedDate = appliedDate,
+        location = location,
+        jobUrl = jobUrl,
+        notes = notes,
         syncStatus = syncStatus,
         version = version,
         serverCompany = serverCompany,
         serverPositionTitle = serverPositionTitle,
         serverStatus = serverStatus?.let { ApplicationStatus.fromString(it) },
         serverAppliedDate = serverAppliedDate,
+        serverLocation = serverLocation,
+        serverJobUrl = serverJobUrl,
+        serverNotes = serverNotes,
         serverVersion = serverVersion
     )
 }
@@ -65,12 +77,18 @@ fun JobApplication.toEntity(): JobApplicationEntity {
         positionTitle = positionTitle,
         status = status.name,
         appliedDate = appliedDate,
+        location = location,
+        jobUrl = jobUrl,
+        notes = notes,
         syncStatus = syncStatus,
         version = version,
         serverCompany = serverCompany,
         serverPositionTitle = serverPositionTitle,
         serverStatus = serverStatus?.name,
         serverAppliedDate = serverAppliedDate,
+        serverLocation = serverLocation,
+        serverJobUrl = serverJobUrl,
+        serverNotes = serverNotes,
         serverVersion = serverVersion
     )
 }

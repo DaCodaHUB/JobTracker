@@ -19,6 +19,9 @@ data class JobApplicationEntity(
     val positionTitle: String,
     val status: String,
     val appliedDate: String,
+    val location: String = "",
+    val jobUrl: String = "",
+    val notes: String = "",
     
     /** Indicates whether this item is synced, pending a push, or in conflict. */
     val syncStatus: SyncStatus = SyncStatus.SYNCED,
@@ -31,5 +34,8 @@ data class JobApplicationEntity(
     val serverPositionTitle: String? = null,
     val serverStatus: String? = null,
     val serverAppliedDate: String? = null,
+    val serverLocation: String? = null,
+    val serverJobUrl: String? = null,
+    val serverNotes: String? = null,
     val serverVersion: Int? = null
 )

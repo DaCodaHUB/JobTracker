@@ -150,7 +150,10 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                     companyName = entity.companyName,
                     positionTitle = entity.positionTitle,
                     status = entity.status,
-                    appliedDate = entity.appliedDate
+                    appliedDate = entity.appliedDate,
+                    location = com.apollographql.apollo.api.Optional.present(entity.location),
+                    jobUrl = com.apollographql.apollo.api.Optional.present(entity.jobUrl),
+                    notes = com.apollographql.apollo.api.Optional.present(entity.notes)
                 )
             )
         ).execute()

@@ -25,7 +25,10 @@ interface JobApplicationRepository {
         companyName: String,
         positionTitle: String,
         status: ApplicationStatus,
-        appliedDate: String
+        appliedDate: String,
+        location: String,
+        jobUrl: String,
+        notes: String
     ): Result<JobApplication>
 
     suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit>

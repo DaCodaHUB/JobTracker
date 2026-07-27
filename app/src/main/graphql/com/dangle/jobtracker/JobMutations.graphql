@@ -6,6 +6,9 @@ mutation CreateJobApplication($input: CreateJobApplicationInput!) {
         positionTitle
         status
         appliedDate
+        location
+        jobUrl
+        notes
         version
     }
 }

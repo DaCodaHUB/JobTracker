@@ -65,6 +65,15 @@ class JobApplicationViewModel @Inject constructor (
             is JobApplicationEvent.StatusChanged -> {
                 _uiState.update { it.copy(selectedStatus = event.status) }
             }
+            is JobApplicationEvent.LocationChanged -> {
+                _uiState.update { it.copy(location = event.location) }
+            }
+            is JobApplicationEvent.JobUrlChanged -> {
+                _uiState.update { it.copy(jobUrl = event.url) }
+            }
+            is JobApplicationEvent.NotesChanged -> {
+                _uiState.update { it.copy(notes = event.notes) }
+            }
             JobApplicationEvent.SaveClicked -> saveApplication()
         }
     }
@@ -86,7 +95,10 @@ class JobApplicationViewModel @Inject constructor (
                 companyName = currentState.companyName,
                 positionTitle = currentState.positionTitle,
                 status = currentState.selectedStatus,
-                appliedDate = LocalDate.now().toString()
+                appliedDate = LocalDate.now().toString(),
+                location = currentState.location,
+                jobUrl = currentState.jobUrl,
+                notes = currentState.notes
             )
 
             result.onSuccess {

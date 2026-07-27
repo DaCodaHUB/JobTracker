@@ -6,6 +6,9 @@ query GetJobApplications {
     positionTitle
     status
     appliedDate
+    location
+    jobUrl
+    notes
     version
   }
 }

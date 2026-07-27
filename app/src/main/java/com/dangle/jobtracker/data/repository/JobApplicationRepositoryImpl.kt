@@ -162,12 +162,16 @@ class JobApplicationRepositoryImpl @Inject constructor (
         companyName: String,
         positionTitle: String,
         status: ApplicationStatus,
-        appliedDate: String
+        appliedDate: String,
+        location: String,
+        jobUrl: String,
+        notes: String
     ): Result<JobApplication> = withContext(ioDispatcher) {
         val initialEntity = JobApplicationEntity(
             id = "local_${UUID.randomUUID()}",
             companyName = companyName, positionTitle = positionTitle,
             status = status.name, appliedDate = appliedDate,
+            location = location, jobUrl = jobUrl, notes = notes,
             syncStatus = SyncStatus.PENDING_CREATE
         )
         dao.insertApplication(initialEntity)

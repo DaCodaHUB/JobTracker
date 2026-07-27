@@ -1,11 +1,16 @@
 package com.dangle.jobtracker.ui.application
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 
@@ -23,14 +28,32 @@ fun JobApplicationScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Add New Application") },
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "Add application",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Navigate back"
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel"
                         )
+                    }
+                },
+                actions = {
+                    TextButton(
+                        onClick = { onEvent(JobApplicationEvent.SaveClicked) },
+                        enabled = uiState.isSubmitEnabled && !uiState.isSubmitting
+                    ) {
+                        if (uiState.isSubmitting) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("Save")
+                        }
                     }
                 }
             )
@@ -41,83 +64,134 @@ fun JobApplicationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = uiState.companyName,
-                onValueChange = { onEvent(JobApplicationEvent.CompanyNameChanged(it)) },
-                label = { Text("Company Name") },
-                isError = uiState.companyNameError != null,
-                supportingText = {
-                    uiState.companyNameError?.let { Text(it) }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
-                value = uiState.positionTitle,
-                onValueChange = { onEvent(JobApplicationEvent.PositionTitleChanged(it)) },
-                label = { Text("Position Title") },
-                isError = uiState.positionTitleError != null,
-                supportingText = {
-                    uiState.positionTitleError?.let { Text(it) }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            val fieldShape = RoundedCornerShape(12.dp)
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // Company Field
+            FormSection(label = "Company") {
                 OutlinedTextField(
-                    value = uiState.selectedStatus.name,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Status") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                    modifier = Modifier
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
-                        .fillMaxWidth()
+                    value = uiState.companyName,
+                    onValueChange = { onEvent(JobApplicationEvent.CompanyNameChanged(it)) },
+                    placeholder = { Text("Company name", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = fieldShape,
+                    isError = uiState.companyNameError != null,
+                    singleLine = true
                 )
+            }
 
-                ExposedDropdownMenu(
+            // Role Field
+            FormSection(label = "Role") {
+                OutlinedTextField(
+                    value = uiState.positionTitle,
+                    onValueChange = { onEvent(JobApplicationEvent.PositionTitleChanged(it)) },
+                    placeholder = { Text("Job title", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = fieldShape,
+                    isError = uiState.positionTitleError != null,
+                    singleLine = true
+                )
+            }
+
+            // Status Field
+            FormSection(label = "Status") {
+                ExposedDropdownMenuBox(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    ApplicationStatus.entries.forEach { status ->
-                        DropdownMenuItem(
-                            text = { Text(status.name) },
-                            onClick = {
-                                onEvent(JobApplicationEvent.StatusChanged(status))
-                                expanded = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                        )
+                    OutlinedTextField(
+                        value = uiState.selectedStatus.name.lowercase().replaceFirstChar { it.uppercase() },
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        shape = fieldShape,
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        ApplicationStatus.entries.forEach { status ->
+                            DropdownMenuItem(
+                                text = { Text(status.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                onClick = {
+                                    onEvent(JobApplicationEvent.StatusChanged(status))
+                                    expanded = false
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            )
+                        }
                     }
                 }
             }
 
-            Button(
-                onClick = { onEvent(JobApplicationEvent.SaveClicked) },
-                // Prevent double-submissions while loading
-                enabled = uiState.isSubmitEnabled && !uiState.isSubmitting,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Save Application")
-                }
+            // Location Field
+            FormSection(label = "Location") {
+                OutlinedTextField(
+                    value = uiState.location,
+                    onValueChange = { onEvent(JobApplicationEvent.LocationChanged(it)) },
+                    placeholder = { Text("e.g. Remote or New York, NY", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = fieldShape,
+                    singleLine = true
+                )
             }
+
+            // Job URL Field
+            FormSection(label = "Job URL") {
+                OutlinedTextField(
+                    value = uiState.jobUrl,
+                    onValueChange = { onEvent(JobApplicationEvent.JobUrlChanged(it)) },
+                    placeholder = { Text("https://company.com/careers/123", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = fieldShape,
+                    singleLine = true
+                )
+            }
+
+            // Notes Field
+            FormSection(label = "Notes") {
+                OutlinedTextField(
+                    value = uiState.notes,
+                    onValueChange = { onEvent(JobApplicationEvent.NotesChanged(it)) },
+                    placeholder = { Text("Add notes about this application...", color = Color.Gray) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp),
+                    shape = fieldShape,
+                    maxLines = 5
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+private fun FormSection(
+    label: String,
+    content: @Composable () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        content()
     }
 }

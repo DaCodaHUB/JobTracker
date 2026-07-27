@@ -4,6 +4,7 @@ package com.dangle.jobtracker.domain.model
  * Represents the current stage of a job application process.
  */
 enum class ApplicationStatus {
+    SAVED,
     APPLIED,
     INTERVIEWING,
     OFFER,
@@ -48,6 +49,9 @@ data class JobApplication(
     val positionTitle: String,
     val status: ApplicationStatus,
     val appliedDate: String,
+    val location: String = "",
+    val jobUrl: String = "",
+    val notes: String = "",
     val syncStatus: SyncStatus = SyncStatus.SYNCED,
     val version: Int = 1,
     
@@ -56,5 +60,8 @@ data class JobApplication(
     val serverPositionTitle: String? = null,
     val serverStatus: ApplicationStatus? = null,
     val serverAppliedDate: String? = null,
+    val serverLocation: String? = null,
+    val serverJobUrl: String? = null,
+    val serverNotes: String? = null,
     val serverVersion: Int? = null
 )

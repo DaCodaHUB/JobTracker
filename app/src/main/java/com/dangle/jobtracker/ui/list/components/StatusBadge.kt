@@ -17,6 +17,7 @@ fun StatusBadge(
     modifier: Modifier = Modifier
 ) {
     val (backgroundColor, contentColor) = when (status) {
+        ApplicationStatus.SAVED -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
         ApplicationStatus.APPLIED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         ApplicationStatus.INTERVIEWING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         ApplicationStatus.OFFER -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer

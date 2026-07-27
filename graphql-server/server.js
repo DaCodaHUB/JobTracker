@@ -15,6 +15,9 @@ const jobApplications = [
     positionTitle: 'Android Engineer',
     status: 'APPLIED',
     appliedDate: '2026-07-20',
+    location: 'Remote',
+    jobUrl: 'https://example.com/jobs/1',
+    notes: 'Great fit for the team',
     version: 1,
   }
 ]
@@ -27,6 +30,9 @@ const schema = createSchema({
       positionTitle: String!
       status: String!
       appliedDate: String!
+      location: String
+      jobUrl: String
+      notes: String
       version: Int!
     }
 
@@ -40,6 +46,9 @@ const schema = createSchema({
       positionTitle: String!
       status: String!
       appliedDate: String!
+      location: String
+      jobUrl: String
+      notes: String
     }
 
     type Mutation {
@@ -65,6 +74,9 @@ const schema = createSchema({
           positionTitle: input.positionTitle,
           status: input.status,
           appliedDate: input.appliedDate,
+          location: input.location,
+          jobUrl: input.jobUrl,
+          notes: input.notes,
           version: 1,
         }
         jobApplications.push(newApp)

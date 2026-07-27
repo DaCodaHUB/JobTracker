@@ -9,6 +9,9 @@ type JobApplication {
   positionTitle: String!
   status: String!
   appliedDate: String!
+  location: String
+  jobUrl: String
+  notes: String
   version: Int!
 }
 
@@ -22,6 +25,9 @@ input CreateJobApplicationInput {
   positionTitle: String!
   status: String!
   appliedDate: String!
+  location: String
+  jobUrl: String
+  notes: String
 }
 
 type Mutation {
