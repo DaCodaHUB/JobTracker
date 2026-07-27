@@ -9,6 +9,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
@@ -63,6 +65,8 @@ private val DarkColorScheme = darkColorScheme(
     outline = md_theme_dark_outline,
 )
 
+val LocalIsDarkTheme = staticCompositionLocalOf { false }
+
 @Composable
 fun JobTrackerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -87,9 +91,11 @@ fun JobTrackerTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDarkTheme provides darkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

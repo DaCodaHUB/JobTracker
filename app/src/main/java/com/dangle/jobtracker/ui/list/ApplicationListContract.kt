@@ -3,6 +3,7 @@ package com.dangle.jobtracker.ui.list
 
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
+import com.dangle.jobtracker.domain.model.ThemeConfig
 
 data class JobStatistics(
     val activeCount: Int = 0,
@@ -24,6 +25,7 @@ sealed interface ApplicationListEvent {
     data class DeleteApplication(val id: String) : ApplicationListEvent
     data class UpdateApplicationStatus(val id: String, val status: ApplicationStatus) : ApplicationListEvent
     data class UpdateNotes(val id: String, val notes: String) : ApplicationListEvent
+    data class ThemeChanged(val config: ThemeConfig) : ApplicationListEvent
     data object Refresh : ApplicationListEvent
     data class ResolveKeepLocal(val id: String) : ApplicationListEvent
     data class ResolveKeepServer(val id: String) : ApplicationListEvent

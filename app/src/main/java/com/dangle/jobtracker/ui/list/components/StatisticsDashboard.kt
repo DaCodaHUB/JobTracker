@@ -1,6 +1,5 @@
 package com.dangle.jobtracker.ui.list.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -14,12 +13,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dangle.jobtracker.ui.list.JobStatistics
+import com.dangle.jobtracker.ui.theme.LocalIsDarkTheme
 
 @Composable
 fun StatisticsDashboard(
     statistics: JobStatistics,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalIsDarkTheme.current
+    
+    // Theme-aware color palettes
+    val activeColor = if (isDark) Color(0xFF0D47A1) else Color(0xFFE3F2FD)
+    val interviewColor = if (isDark) Color(0xFFE65100) else Color(0xFFFFF3E0)
+    val responseColor = if (isDark) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
+    val offerColor = if (isDark) Color(0xFFB71C1C) else Color(0xFFFFEBEE)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -29,25 +37,25 @@ fun StatisticsDashboard(
         StatCard(
             label = "ACTIVE\nAPPLICATIONS",
             value = statistics.activeCount.toString(),
-            color = Color(0xFFE3F2FD), // Light Blue
+            color = activeColor,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             label = "INTERVIEWS",
             value = statistics.interviewCount.toString(),
-            color = Color(0xFFFFF3E0), // Light Orange
+            color = interviewColor,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             label = "RESPONSES",
             value = "${statistics.responseRate}%",
-            color = Color(0xFFE8F5E9), // Light Green
+            color = responseColor,
             modifier = Modifier.weight(1f)
         )
         StatCard(
             label = "OFFERS",
             value = statistics.offerCount.toString(),
-            color = Color(0xFFFFEBEE), // Light Pink/Red
+            color = offerColor,
             modifier = Modifier.weight(1f)
         )
     }
@@ -60,6 +68,9 @@ private fun StatCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalIsDarkTheme.current
+    val contentColor = if (isDark) Color.White else Color.Black
+
     Surface(
         modifier = modifier.height(90.dp),
         shape = MaterialTheme.shapes.medium,
@@ -79,14 +90,14 @@ private fun StatCard(
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 12.sp,
-                color = Color.Black.copy(alpha = 0.7f)
+                color = contentColor.copy(alpha = 0.7f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = contentColor
             )
         }
     }

@@ -3,8 +3,10 @@ package com.dangle.jobtracker.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
+import com.dangle.jobtracker.data.repository.UserPreferencesRepository
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.SyncStatus
+import com.dangle.jobtracker.domain.model.ThemeConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +25,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ApplicationListViewModel @Inject constructor(
-    private val repository: JobApplicationRepository
+    private val repository: JobApplicationRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -110,6 +113,11 @@ class ApplicationListViewModel @Inject constructor(
             is ApplicationListEvent.UpdateNotes -> {
                 viewModelScope.launch {
                     repository.updateNotes(event.id, event.notes)
+                }
+            }
+            is ApplicationListEvent.ThemeChanged -> {
+                viewModelScope.launch {
+                    userPreferencesRepository.setThemeConfig(event.config)
                 }
             }
             is ApplicationListEvent.ResolveKeepLocal -> {

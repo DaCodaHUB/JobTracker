@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
@@ -19,6 +20,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.dangle.jobtracker.domain.model.ThemeConfig
+import com.dangle.jobtracker.ui.MainViewModel
 import com.dangle.jobtracker.ui.application.ApplicationDetailScreen
 import com.dangle.jobtracker.ui.application.JobApplicationRoute
 import com.dangle.jobtracker.ui.application.JobApplicationViewModel
@@ -38,7 +41,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            JobTrackerTheme {
+            val mainViewModel: MainViewModel = hiltViewModel()
+            val themeConfig by mainViewModel.themeConfig.collectAsState()
+
+            val darkTheme = when (themeConfig) {
+                ThemeConfig.FOLLOW_SYSTEM -> isSystemInDarkTheme()
+                ThemeConfig.LIGHT -> false
+                ThemeConfig.DARK -> true
+            }
+
+            JobTrackerTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {

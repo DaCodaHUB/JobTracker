@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
+import com.dangle.jobtracker.domain.model.ThemeConfig
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
 import com.dangle.jobtracker.ui.list.components.ConflictResolutionDialog
 import com.dangle.jobtracker.ui.list.components.StatisticsDashboard
@@ -51,6 +53,7 @@ fun ApplicationListScreen(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showThemeMenu by remember { mutableStateOf(false) }
     // UI-only state for managing dialog visibility
     var applicationToResolve by remember { mutableStateOf<JobApplication?>(null) }
     var applicationToDelete by remember { mutableStateOf<JobApplication?>(null) }
@@ -109,6 +112,40 @@ fun ApplicationListScreen(
             TopAppBar(
                 title = { Text("Job Applications") },
                 actions = {
+                    Box {
+                        IconButton(onClick = { showThemeMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Switch Theme"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showThemeMenu,
+                            onDismissRequest = { showThemeMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("System Default") },
+                                onClick = {
+                                    onEvent(ApplicationListEvent.ThemeChanged(ThemeConfig.FOLLOW_SYSTEM))
+                                    showThemeMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Light Mode") },
+                                onClick = {
+                                    onEvent(ApplicationListEvent.ThemeChanged(ThemeConfig.LIGHT))
+                                    showThemeMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Dark Mode") },
+                                onClick = {
+                                    onEvent(ApplicationListEvent.ThemeChanged(ThemeConfig.DARK))
+                                    showThemeMenu = false
+                                }
+                            )
+                        }
+                    }
                     IconButton(onClick = onAddClick) {
                         Icon(
                             imageVector = Icons.Default.Add,

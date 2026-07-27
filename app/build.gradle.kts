@@ -116,6 +116,9 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
 
+    // Persistence
+    implementation(libs.androidx.datastore.preferences)
+
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation(libs.mockk)
