@@ -55,23 +55,6 @@ fun ApplicationCard(
                                 animatedVisibilityScope = animatedVisibilityScope
                             )
                         )
-                        if (application.syncStatus == SyncStatus.CONFLICT) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = "Conflict",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        } else if (application.syncStatus != SyncStatus.SYNCED) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Syncing",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                        }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatusBadge(status = application.status)
@@ -87,11 +70,32 @@ fun ApplicationCard(
                     )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Applied: ${application.appliedDate}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "Applied: ${application.appliedDate}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    if (application.syncStatus == SyncStatus.CONFLICT) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Conflict",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    } else if (application.syncStatus != SyncStatus.SYNCED) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Syncing",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
             }
         }
     }
