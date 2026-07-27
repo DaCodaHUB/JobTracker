@@ -4,6 +4,10 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
 import com.dangle.jobtracker.util.ConnectivityObserver
 import dagger.hilt.android.HiltAndroidApp
@@ -12,10 +16,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import javax.inject.Inject
 
 @HiltAndroidApp
-class JobTrackerApplication : Application(), Configuration.Provider {
+class JobTrackerApplication : Application(), Configuration.Provider, SingletonImageLoader.Factory {
 
     companion object {
         private const val TAG = "JobTrackerApp"
@@ -59,4 +64,12 @@ class JobTrackerApplication : Application(), Configuration.Provider {
                 .setMinimumLoggingLevel(Log.DEBUG)
                 .build()
         }
+
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .components {
+                add(OkHttpNetworkFetcherFactory(callFactory = { OkHttpClient() }))
+            }
+            .build()
+    }
 }

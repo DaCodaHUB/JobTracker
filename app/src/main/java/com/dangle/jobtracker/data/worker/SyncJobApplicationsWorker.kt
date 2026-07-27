@@ -71,7 +71,14 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                     val serverApp = response.data?.jobApplication
                     if (serverApp != null) {
                         // If the server data matches local intent, we auto-resolve to avoid bugging the user
-                        if (entity.status == serverApp.status) {
+                        val hasSameData = entity.status == serverApp.status &&
+                                entity.companyName == serverApp.companyName &&
+                                entity.positionTitle == serverApp.positionTitle &&
+                                entity.location == (serverApp.location ?: "") &&
+                                entity.jobUrl == (serverApp.jobUrl ?: "") &&
+                                entity.notes == (serverApp.notes ?: "")
+
+                        if (hasSameData) {
                             Log.d(TAG, "Status matches server for ${entity.id}, auto-resolving conflict")
                             dao.updateApplication(entity.copy(
                                 syncStatus = SyncStatus.SYNCED,
@@ -79,11 +86,17 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                                 positionTitle = serverApp.positionTitle,
                                 status = serverApp.status,
                                 appliedDate = serverApp.appliedDate,
+                                location = serverApp.location ?: "",
+                                jobUrl = serverApp.jobUrl ?: "",
+                                notes = serverApp.notes ?: "",
                                 version = serverApp.version,
                                 serverCompany = null,
                                 serverPositionTitle = null,
                                 serverStatus = null,
                                 serverAppliedDate = null,
+                                serverLocation = null,
+                                serverJobUrl = null,
+                                serverNotes = null,
                                 serverVersion = null
                             ))
                         } else {
@@ -94,6 +107,9 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                                 serverPositionTitle = serverApp.positionTitle,
                                 serverStatus = serverApp.status,
                                 serverAppliedDate = serverApp.appliedDate,
+                                serverLocation = serverApp.location,
+                                serverJobUrl = serverApp.jobUrl,
+                                serverNotes = serverApp.notes,
                                 serverVersion = serverApp.version
                             ))
                         }

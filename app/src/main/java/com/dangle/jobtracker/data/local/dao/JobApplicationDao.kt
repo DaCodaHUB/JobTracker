@@ -41,6 +41,18 @@ interface JobApplicationDao {
     suspend fun getApplicationById(id: String): JobApplicationEntity?
 
     /**
+     * Finds any application that matches the given business key.
+     * Used to prevent duplicates when a local item is synced and receives a new ID.
+     */
+    @Query("""
+        SELECT * FROM job_applications 
+        WHERE TRIM(LOWER(companyName)) = TRIM(LOWER(:companyName)) 
+        AND TRIM(LOWER(positionTitle)) = TRIM(LOWER(:positionTitle))
+        LIMIT 1
+    """)
+    suspend fun findAnyMatchByBusinessKey(companyName: String, positionTitle: String): JobApplicationEntity?
+
+    /**
      * Standard insert using REPLACE strategy to handle simple ID-based updates.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

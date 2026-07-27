@@ -112,6 +112,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Image Loading
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     // Unit Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation(libs.mockk)

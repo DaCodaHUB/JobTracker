@@ -93,40 +93,10 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 Result.failure(Exception(errorMessage))
             } else {
                 val localItems = dao.getAllApplicationsSync()
-                val localMap = localItems.associateBy { it.id }
                 val serverMap = serverItems.associateBy { it.id }
                 
-                val toUpdateOrInsert = mutableListOf<JobApplicationEntity>()
-                val toMarkConflicted = mutableListOf<JobApplicationEntity>()
-
-                serverItems.forEach { serverItem ->
-                    val localItem = localMap[serverItem.id]
-                    // Only process if the item is new or the server has a newer version
-                    if (localItem == null || localItem.version < serverItem.version) {
-                        
-                        // Auto-resolve if the status is already the same despite being unsynced
-                        val shouldAutoResolve = localItem != null && 
-                                localItem.syncStatus != SyncStatus.SYNCED && 
-                                localItem.status == serverItem.status
-
-                        if (localItem == null || localItem.syncStatus == SyncStatus.SYNCED || shouldAutoResolve) {
-                            // Safe to overwrite local with server data
-                            toUpdateOrInsert.add(serverItem.toEntity())
-                        } else {
-                            // Divergent change: Mark as conflict and store server data for resolution UI
-                            toMarkConflicted.add(
-                                localItem.copy(
-                                    syncStatus = SyncStatus.CONFLICT,
-                                    serverCompany = serverItem.companyName,
-                                    serverPositionTitle = serverItem.positionTitle,
-                                    serverStatus = serverItem.status,
-                                    serverAppliedDate = serverItem.appliedDate,
-                                    serverVersion = serverItem.version
-                                )
-                            )
-                        }
-                    }
-                }
+                // Process each server item and ensure no duplicates are created
+                serverItems.forEach { upsertSafely(it.toEntity()) }
                 
                 // Identify items that were deleted on the server but are still present locally as SYNCED
                 val toDelete = localItems.filter { localItem ->
@@ -134,12 +104,6 @@ class JobApplicationRepositoryImpl @Inject constructor (
                     isMissingFromServer && (localItem.syncStatus == SyncStatus.SYNCED || localItem.syncStatus == SyncStatus.PENDING_DELETE)
                 }
 
-                if (toUpdateOrInsert.isNotEmpty()) {
-                    dao.insertApplications(toUpdateOrInsert)
-                }
-                if (toMarkConflicted.isNotEmpty()) {
-                    dao.insertApplications(toMarkConflicted)
-                }
                 if (toDelete.isNotEmpty()) {
                     dao.deleteApplications(toDelete)
                 }
@@ -151,6 +115,81 @@ class JobApplicationRepositoryImpl @Inject constructor (
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Atomically updates or inserts an application while preventing duplicates 
+     * between local-only and server-synced items.
+     */
+    private suspend fun upsertSafely(serverEntity: JobApplicationEntity) {
+        // 1. Check if we already have this ID
+        val localById = dao.getApplicationById(serverEntity.id)
+        if (localById != null) {
+            processUpdate(localById, serverEntity)
+            return
+        }
+
+        // 2. Check for Business Key match (Company + Position) among local-only items
+        val match = dao.findAnyMatchByBusinessKey(serverEntity.companyName, serverEntity.positionTitle)
+        if (match != null) {
+            // We found a match with a different ID (likely a local UUID being replaced by a server ID)
+            if (match.syncStatus == SyncStatus.PENDING_DELETE) {
+                // If it's pending delete locally, don't re-insert it from server
+                return
+            }
+            
+            // Replace the local placeholder with the official server version
+            dao.deleteApplication(match)
+            dao.insertApplication(serverEntity)
+            return
+        }
+
+        // 3. Brand new item from server
+        dao.insertApplication(serverEntity)
+    }
+
+    /**
+     * Handles updating an existing local entity with newer server data.
+     */
+    private suspend fun processUpdate(local: JobApplicationEntity, server: JobApplicationEntity) {
+        if (local.syncStatus == SyncStatus.PENDING_DELETE) return
+        
+        // If local is synced, just overwrite if server is same or newer
+        if (local.syncStatus == SyncStatus.SYNCED) {
+            if (server.version >= local.version) {
+                dao.insertApplication(server)
+            }
+            return
+        }
+
+        // If local has pending changes (UPDATE), check for conflict
+        if (server.version > local.version) {
+            // Check if the business data has diverged
+            val hasSameData = local.status == server.status &&
+                    local.companyName == server.companyName &&
+                    local.positionTitle == server.positionTitle &&
+                    local.location == server.location &&
+                    local.jobUrl == server.jobUrl &&
+                    local.notes == server.notes
+
+            if (hasSameData) {
+                // Same data, just update version and mark synced
+                dao.insertApplication(server)
+            } else {
+                // Data differs: Mark as CONFLICT and store server snapshot for UI
+                dao.updateApplication(local.copy(
+                    syncStatus = SyncStatus.CONFLICT,
+                    serverCompany = server.companyName,
+                    serverPositionTitle = server.positionTitle,
+                    serverStatus = server.status,
+                    serverAppliedDate = server.appliedDate,
+                    serverLocation = server.location,
+                    serverJobUrl = server.jobUrl,
+                    serverNotes = server.notes,
+                    serverVersion = server.version
+                ))
+            }
         }
     }
 

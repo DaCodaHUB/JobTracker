@@ -1,16 +1,24 @@
 package com.dangle.jobtracker.ui.application
 
+import android.util.Log
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.ui.list.components.StatusBadge
+import com.dangle.jobtracker.util.UrlUtils
 
 /**
  * Displays the full details of a specific job application.
@@ -73,19 +81,63 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Text Shared Element: The company name "flies" into its new position
-                        Text(
-                            text = application.companyName,
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.sharedElement(
-                                sharedContentState = rememberSharedContentState(key = "company-${application.id}"),
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        )
+                        // Larger Logo in Detail with Letter Placeholder Fallback
+                        var isImageLoaded by remember { mutableStateOf(false) }
+
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!isImageLoaded) {
+                                Text(
+                                    text = application.companyName.take(1).uppercase(),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            val logoUrl = UrlUtils.getLogoUrl(application.jobUrl)
+                            if (logoUrl != null) {
+                                AsyncImage(
+                                    model = logoUrl,
+                                    contentDescription = "${application.companyName} logo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit,
+                                    onState = { state ->
+                                        when (state) {
+                                            is coil3.compose.AsyncImagePainter.State.Error -> {
+                                                Log.e("ApplicationDetail", "Error loading logo for ${application.companyName}: ${state.result.throwable}")
+                                                isImageLoaded = false
+                                            }
+                                            is coil3.compose.AsyncImagePainter.State.Success -> {
+                                                isImageLoaded = true
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+                                )
+                            }
+                        }
                         StatusBadge(status = application.status)
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Text Shared Element: The company name "flies" into its new position
+                    Text(
+                        text = application.companyName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.sharedElement(
+                            sharedContentState = rememberSharedContentState(key = "company-${application.id}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        )
+                    )
                     
                     Spacer(modifier = Modifier.height(8.dp))
                     
@@ -145,12 +197,36 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    Text(
-                        text = "Applied on: ${application.appliedDate}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    if (application.location.isNotBlank()) {
+                        DetailItem(label = "Location", value = application.location)
+                    }
+
+                    if (application.jobUrl.isNotBlank()) {
+                        DetailItem(label = "Job URL", value = application.jobUrl)
+                    }
+
+                    if (application.notes.isNotBlank()) {
+                        DetailItem(label = "Notes", value = application.notes)
+                    }
+
+                    DetailItem(label = "Applied on", value = application.appliedDate)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DetailItem(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
