@@ -38,18 +38,12 @@ The app uses a sophisticated state machine to manage data consistency:
 
 ```text
 com.dangle.jobtracker
-├── data/
-│   ├── local/          # Room Database, DAOs, and Entities
-│   ├── network/        # Apollo GraphQL client configuration
-│   ├── repository/     # SSOT Repository implementation and Mappers
-│   └── worker/         # WorkManager Sync Workers
-├── di/                 # Hilt Modules (Database, Network, Dispatchers)
-├── domain/             # Pure Kotlin Domain Models and Enums
-├── ui/
-│   ├── application/    # Creation and Detail screens
-│   ├── list/           # Application list and Conflict Resolution UI
-│   └── theme/          # M3 Color, Type, and Theme definitions
-└── util/               # Networking and Connectivity utilities
+├── data/          # Local Database, Apollo configuration, Repository, and Workers
+├── di/            # Hilt Modules
+├── domain/        # Pure Kotlin Domain Models
+├── ui/            # Screens, Components, and Theme
+└── util/          # Utilities
+graphql-server/    # Node.js GraphQL backend with Subscriptions support
 ```
 
 ## 🧪 Testing Strategy
@@ -69,12 +63,30 @@ The project maintains a high standard of reliability through comprehensive testi
 ### Prerequisites
 - Android Studio Ladybug (or newer)
 - JDK 17
-- A running GraphQL backend (configured in `local.properties` via `api.url`)
+- Node.js (for the backend server)
 
-### Configuration
-Create a `local.properties` file in the root directory:
+### Backend Setup
+The project includes a mock GraphQL backend server in the `graphql-server/` directory.
+
+1.  Navigate to the directory:
+    ```bash
+    cd graphql-server
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the server:
+    ```bash
+    npm start
+    ```
+    The server will be running at `http://localhost:4000/graphql`.
+
+### Android App Configuration
+Create a `local.properties` file in the root directory and point it to your machine's IP address (not localhost, as the emulator needs to reach your host):
+
 ```properties
-api.url="https://your-api-endpoint.com/graphql"
+api.url="http://<YOUR_IP_ADDRESS>:4000/graphql"
 ```
 
 ## 📄 License
