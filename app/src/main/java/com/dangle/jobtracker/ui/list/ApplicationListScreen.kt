@@ -7,9 +7,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -105,18 +107,16 @@ fun ApplicationListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Job Applications") }
+                title = { Text("Job Applications") },
+                actions = {
+                    IconButton(onClick = onAddClick) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Application"
+                        )
+                    }
+                }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddClick
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Application"
-                )
-            }
         },
         modifier = modifier
     ) { paddingValues ->
@@ -132,6 +132,8 @@ fun ApplicationListScreen(
                 value = uiState.searchQuery,
                 onValueChange = { onEvent(ApplicationListEvent.SearchChanged(it)) },
                 label = { Text("Search applications") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
