@@ -22,11 +22,11 @@ fun StatisticsDashboard(
 ) {
     val isDark = LocalIsDarkTheme.current
     
-    // Theme-aware color palettes
-    val activeColor = if (isDark) Color(0xFF0D47A1) else Color(0xFFE3F2FD)
-    val interviewColor = if (isDark) Color(0xFFE65100) else Color(0xFFFFF3E0)
-    val responseColor = if (isDark) Color(0xFF1B5E20) else Color(0xFFE8F5E9)
-    val offerColor = if (isDark) Color(0xFFB71C1C) else Color(0xFFFFEBEE)
+    // Theme-aware color palettes: Vibrant for light mode, Muted for dark mode
+    val activeColor = if (isDark) Color(0xFF1E3A5F) else Color(0xFF90CAF9)
+    val interviewColor = if (isDark) Color(0xFF4A3420) else Color(0xFFFFCC80)
+    val responseColor = if (isDark) Color(0xFF213A28) else Color(0xFFA5D6A7)
+    val offerColor = if (isDark) Color(0xFF4A2020) else Color(0xFFEF9A9A)
 
     Row(
         modifier = modifier
