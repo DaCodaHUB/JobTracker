@@ -20,6 +20,7 @@ import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
 import com.dangle.jobtracker.ui.list.components.ApplicationCard
 import com.dangle.jobtracker.ui.list.components.ConflictResolutionDialog
+import com.dangle.jobtracker.ui.list.components.StatisticsDashboard
 
 /**
  * The primary list screen for job applications.
@@ -124,6 +125,8 @@ fun ApplicationListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            StatisticsDashboard(statistics = uiState.statistics)
+
             // Search Input Field: Updates the UI state immediately on change
             OutlinedTextField(
                 value = uiState.searchQuery,

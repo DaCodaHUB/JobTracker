@@ -3,6 +3,7 @@ package com.dangle.jobtracker.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangle.jobtracker.data.repository.JobApplicationRepository
+import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,8 +46,26 @@ class ApplicationListViewModel @Inject constructor(
             matchesSearch && notDeleted
         }
 
+        // Calculate statistics based on all non-deleted applications
+        val nonDeletedApps = allApplications.filter { it.syncStatus != SyncStatus.PENDING_DELETE }
+        val activeCount = nonDeletedApps.count { it.status != ApplicationStatus.REJECTED }
+        val interviewCount = nonDeletedApps.count { it.status == ApplicationStatus.INTERVIEWING }
+        val offerCount = nonDeletedApps.count { it.status == ApplicationStatus.OFFER }
+        
+        val totalCount = nonDeletedApps.size
+        val respondedCount = nonDeletedApps.count { it.status != ApplicationStatus.APPLIED }
+        val responseRate = if (totalCount > 0) {
+            (respondedCount.toFloat() / totalCount * 100).toInt()
+        } else 0
+
         ApplicationListUiState(
             applications = filtered, // Sorting is handled at the DAO level
+            statistics = JobStatistics(
+                activeCount = activeCount,
+                interviewCount = interviewCount,
+                responseRate = responseRate,
+                offerCount = offerCount
+            ),
             searchQuery = query,
             isLoading = isLoading
         )

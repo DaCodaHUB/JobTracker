@@ -4,8 +4,16 @@ package com.dangle.jobtracker.ui.list
 import com.dangle.jobtracker.domain.model.ApplicationStatus
 import com.dangle.jobtracker.domain.model.JobApplication
 
+data class JobStatistics(
+    val activeCount: Int = 0,
+    val interviewCount: Int = 0,
+    val responseRate: Int = 0,
+    val offerCount: Int = 0
+)
+
 data class ApplicationListUiState(
     val applications: List<JobApplication> = emptyList(),
+    val statistics: JobStatistics = JobStatistics(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
