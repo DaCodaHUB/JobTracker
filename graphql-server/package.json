@@ -1,0 +1,16 @@
+{
+  "name": "job-app-graphql",
+  "version": "1.0.0",
+  "description": "GraphQL server with WebSocket Subscriptions",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "graphql": "^16.8.1",
+    "graphql-ws": "^5.16.0",
+    "graphql-yoga": "^5.1.0",
+    "ws": "^8.16.0"
+  }
+}

@@ -3,14 +3,18 @@ package com.dangle.jobtracker.ui.list
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
@@ -140,22 +144,55 @@ fun ApplicationListScreen(
                     items = uiState.applications,
                     key = { application -> application.id }
                 ) { application ->
-                    ApplicationCard(
-                        application = application,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        onClick = {
-                            // Intercept clicks on conflicted items to show the resolution dialog
-                            if (application.syncStatus == SyncStatus.CONFLICT) {
-                                applicationToResolve = application
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                applicationToDelete = application
+                                false // snap back while dialog is shown
                             } else {
-                                onItemClick(application.id)
+                                false
                             }
-                        },
-                        onDelete = {
-                            applicationToDelete = application
                         }
                     )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            val color = when (dismissState.targetValue) {
+                                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                else -> Color.Transparent
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 4.dp)
+                                    .background(color, MaterialTheme.shapes.medium),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(end = 16.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        ApplicationCard(
+                            application = application,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            onClick = {
+                                // Intercept clicks on conflicted items to show the resolution dialog
+                                if (application.syncStatus == SyncStatus.CONFLICT) {
+                                    applicationToResolve = application
+                                } else {
+                                    onItemClick(application.id)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }

@@ -24,7 +24,6 @@ fun ApplicationCard(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     with(sharedTransitionScope) {
@@ -76,14 +75,6 @@ fun ApplicationCard(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatusBadge(status = application.status)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
