@@ -244,6 +244,28 @@ class JobApplicationRepositoryImpl @Inject constructor (
     }
 
     /**
+     * Updates the notes for an existing application.
+     */
+    override suspend fun updateNotes(id: String, notes: String): Result<Unit> = withContext(ioDispatcher) {
+        try {
+            val entity = dao.getApplicationById(id)
+            if (entity != null) {
+                val updatedEntity = entity.copy(
+                    notes = notes,
+                    syncStatus = if (entity.syncStatus == SyncStatus.SYNCED) SyncStatus.PENDING_UPDATE else entity.syncStatus
+                )
+                dao.updateApplication(updatedEntity)
+                scheduleSync()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Application not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Deletes an application.
      * - If the item is PENDING_CREATE (local only), it is hard-deleted immediately.
      * - Otherwise, it is marked as PENDING_DELETE to be synced with the server later.

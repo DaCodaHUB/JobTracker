@@ -107,6 +107,11 @@ class ApplicationListViewModel @Inject constructor(
                     repository.updateStatus(event.id, event.status)
                 }
             }
+            is ApplicationListEvent.UpdateNotes -> {
+                viewModelScope.launch {
+                    repository.updateNotes(event.id, event.notes)
+                }
+            }
             is ApplicationListEvent.ResolveKeepLocal -> {
                 viewModelScope.launch {
                     repository.resolveKeepMine(event.id)

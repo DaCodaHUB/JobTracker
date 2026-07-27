@@ -33,6 +33,8 @@ interface JobApplicationRepository {
 
     suspend fun updateStatus(id: String, newStatus: ApplicationStatus): Result<Unit>
 
+    suspend fun updateNotes(id: String, notes: String): Result<Unit>
+
     suspend fun deleteApplication(id: String): Result<Unit>
 
     suspend fun resolveKeepMine(id: String): Result<Unit>

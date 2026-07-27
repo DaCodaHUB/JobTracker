@@ -10,7 +10,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.dangle.jobtracker.CreateJobApplicationMutation
 import com.dangle.jobtracker.DeleteJobApplicationMutation
 import com.dangle.jobtracker.GetJobApplicationQuery
-import com.dangle.jobtracker.UpdateJobApplicationStatusMutation
+import com.dangle.jobtracker.UpdateJobApplicationMutation
 import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.data.repository.toEntity
@@ -193,13 +193,14 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
     }
 
     /**
-     * Executes the status update mutation using optimistic locking (version check).
+     * Executes the update mutation using optimistic locking (version check).
      */
     private suspend fun handleUpdate(entity: JobApplicationEntity) {
         val response = apolloClient.mutation(
-            UpdateJobApplicationStatusMutation(
+            UpdateJobApplicationMutation(
                 id = entity.id,
-                status = entity.status,
+                status = com.apollographql.apollo.api.Optional.present(entity.status),
+                notes = com.apollographql.apollo.api.Optional.present(entity.notes),
                 version = entity.version
             )
         ).execute()
@@ -211,10 +212,8 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
             throw Exception("Failed to update application: ${response.errors?.firstOrNull()?.message}")
         }
 
-        val updatedData = response.data?.updateJobApplicationStatus
-        Log.d(TAG, "Update response data: $updatedData")
+        val updatedData = response.data?.updateJobApplication
         if (updatedData != null) {
-            // Update successful: reset syncStatus and increment version
             dao.updateApplication(
                 entity.copy(
                     syncStatus = SyncStatus.SYNCED,

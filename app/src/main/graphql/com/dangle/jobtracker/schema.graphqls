@@ -32,6 +32,6 @@ input CreateJobApplicationInput {
 
 type Mutation {
   createJobApplication(input: CreateJobApplicationInput!): JobApplication!
-  updateJobApplicationStatus(id: ID!, status: String!, version: Int!): JobApplication!
+  updateJobApplication(id: ID!, status: String, notes: String, version: Int!): JobApplication!
   deleteJobApplication(id: ID!, version: Int!): Boolean!
 }

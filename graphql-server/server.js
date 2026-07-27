@@ -53,7 +53,7 @@ const schema = createSchema({
 
     type Mutation {
       createJobApplication(input: CreateJobApplicationInput!): JobApplication!
-      updateJobApplicationStatus(id: ID!, status: String!, version: Int!): JobApplication!
+      updateJobApplication(id: ID!, status: String, notes: String, version: Int!): JobApplication!
       deleteJobApplication(id: ID!, version: Int!): Boolean!
     }
 
@@ -81,26 +81,31 @@ const schema = createSchema({
         }
         jobApplications.push(newApp)
 
-        // Publish creation event
+        // Publish real-time creation
         pubSub.publish('JOB_APPLICATION_UPDATED', { jobApplicationUpdated: newApp })
 
         return newApp
       },
-      updateJobApplicationStatus: (_, { id, status, version }) => {
+      updateJobApplication: (_, { id, status, notes, version }) => {
         const app = jobApplications.find(a => a.id === id)
         if (!app) throw new Error(`Application with id ${id} not found`)
 
-        // Conflict check logic
-        if (version < app.version) {
+        if (version !== app.version) {
           throw new GraphQLError('Conflict: Server data is newer', {
-            extensions: { code: 'CONFLICT' }
+            extensions: {
+              code: 'CONFLICT',
+              serverVersion: app.version,
+            }
           })
         }
 
-        app.status = status
+        // Nullable mutation arguments act as optional patch fields. The Android
+        // client uses an empty string when it intentionally clears notes.
+        if (status != null) app.status = status
+        if (notes != null) app.notes = notes
+
         app.version += 1
 
-        // Publish real-time status change
         pubSub.publish('JOB_APPLICATION_UPDATED', { jobApplicationUpdated: app })
 
         return app
@@ -111,9 +116,12 @@ const schema = createSchema({
 
         const app = jobApplications[index]
 
-        if (version < app.version) {
+        if (version !== app.version) {
           throw new GraphQLError('Conflict: Server data is newer', {
-            extensions: { code: 'CONFLICT' }
+            extensions: {
+              code: 'CONFLICT',
+              serverVersion: app.version,
+            }
           })
         }
 

@@ -91,6 +91,9 @@ class MainActivity : ComponentActivity() {
                                             onStatusChange = { newStatus ->
                                                 listViewModel.onEvent(ApplicationListEvent.UpdateApplicationStatus(it.id, newStatus))
                                             },
+                                            onNotesChange = { newNotes ->
+                                                listViewModel.onEvent(ApplicationListEvent.UpdateNotes(it.id, newNotes))
+                                            },
                                             onBackClick = { navController.popBackStack() }
                                         )
                                     }

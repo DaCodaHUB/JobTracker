@@ -13,11 +13,12 @@ mutation CreateJobApplication($input: CreateJobApplicationInput!) {
     }
 }
 
-# Update Application Status
-mutation UpdateJobApplicationStatus($id: ID!, $status: String!, $version: Int!) {
-    updateJobApplicationStatus(id: $id, status: $status, version: $version) {
+# Update Application
+mutation UpdateJobApplication($id: ID!, $status: String, $notes: String, $version: Int!) {
+    updateJobApplication(id: $id, status: $status, notes: $notes, version: $version) {
         id
         status
+        notes
         version
     }
 }

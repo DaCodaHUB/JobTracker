@@ -39,6 +39,7 @@ fun SharedTransitionScope.ApplicationDetailScreen(
     application: JobApplication,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onStatusChange: (ApplicationStatus) -> Unit,
+    onNotesChange: (String) -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -139,6 +140,9 @@ fun SharedTransitionScope.ApplicationDetailScreen(
 
             // 3. Notes Card
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                var isEditing by remember { mutableStateOf(false) }
+                var editedNotes by remember(application.notes) { mutableStateOf(application.notes) }
+
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -150,15 +154,44 @@ fun SharedTransitionScope.ApplicationDetailScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        IconButton(onClick = { /* TODO: Implement edit notes */ }) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Notes")
+                        if (!isEditing) {
+                            IconButton(onClick = { isEditing = true }) {
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Notes")
+                            }
                         }
                     }
-                    Text(
-                        text = application.notes.ifBlank { "Add notes about this application..." },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (application.notes.isBlank()) MaterialTheme.colorScheme.outline else Color.Unspecified
-                    )
+
+                    if (isEditing) {
+                        OutlinedTextField(
+                            value = editedNotes,
+                            onValueChange = { editedNotes = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Add notes about this application...") }
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { 
+                                isEditing = false
+                                editedNotes = application.notes 
+                            }) {
+                                Text("Cancel")
+                            }
+                            TextButton(onClick = { 
+                                onNotesChange(editedNotes)
+                                isEditing = false 
+                            }) {
+                                Text("Save")
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = application.notes.ifBlank { "Add notes about this application..." },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (application.notes.isBlank()) MaterialTheme.colorScheme.outline else Color.Unspecified
+                        )
+                    }
                 }
             }
 
