@@ -2,6 +2,12 @@
 
 JobTracker is a professional-grade Android application designed for managing job applications with a robust, offline-first synchronization engine. It demonstrates modern Android development practices, including Material 3 theming, Shared Element Transitions, and a reliable Single Source of Truth (SSOT) architecture.
 
+## 📸 Screenshots
+
+| Application List | Application Details |
+| :---: | :---: |
+| ![Application List](screenshots/Screenshot_20260727-172108_JobTracker.png) | ![Application Details](screenshots/Screenshot_20260727-172148_JobTracker.png) |
+
 ## 🚀 Key Features
 
 - **Offline-First Architecture**: View, create, and modify job applications without an internet connection.
