@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dangle.jobtracker.domain.model.JobApplication
 import com.dangle.jobtracker.domain.model.SyncStatus
@@ -161,6 +163,8 @@ fun ApplicationListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
+                .imePadding()
         ) {
             StatisticsDashboard(statistics = uiState.statistics)
 
@@ -177,13 +181,37 @@ fun ApplicationListScreen(
             )
 
             // Optimized list with unique keys for recomposition performance
+            var isListExpanded by rememberSaveable { mutableStateOf(false) }
+            val visibleApplications = if (isListExpanded) uiState.applications else uiState.applications.take(4)
+
+            // List Header with Expand/Collapse toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Applications",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (uiState.applications.size > 4) {
+                    TextButton(onClick = { isListExpanded = !isListExpanded }) {
+                        Text(if (isListExpanded) "Collapse" else "View more")
+                    }
+                }
+            }
+
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(
-                    items = uiState.applications,
+                    items = visibleApplications,
                     key = { application -> application.id }
                 ) { application ->
                     val dismissState = rememberSwipeToDismissBoxState(
