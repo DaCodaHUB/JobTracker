@@ -177,18 +177,19 @@ fun ApplicationListScreen(
                 shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
             )
 
             // Optimized list with unique keys for recomposition performance
             var isListExpanded by rememberSaveable { mutableStateOf(false) }
             val visibleApplications = if (isListExpanded) uiState.applications else uiState.applications.take(4)
 
-            // List Header with Expand/Collapse toggle
+            // List Header with Expand/Collapse toggle - consistent height to prevent jumps
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .heightIn(min = 40.dp)
+                    .padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -206,7 +207,7 @@ fun ApplicationListScreen(
             }
 
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {

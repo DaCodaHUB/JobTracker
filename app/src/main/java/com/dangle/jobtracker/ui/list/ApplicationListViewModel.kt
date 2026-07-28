@@ -55,8 +55,10 @@ class ApplicationListViewModel @Inject constructor(
         val interviewCount = nonDeletedApps.count { it.status == ApplicationStatus.INTERVIEWING }
         val offerCount = nonDeletedApps.count { it.status == ApplicationStatus.OFFER }
         
-        val totalCount = nonDeletedApps.size
-        val respondedCount = nonDeletedApps.count { it.status != ApplicationStatus.APPLIED }
+        val totalCount = nonDeletedApps.count { it.status != ApplicationStatus.SAVED }
+        val respondedCount = nonDeletedApps.count { 
+            it.status != ApplicationStatus.APPLIED && it.status != ApplicationStatus.SAVED 
+        }
         val responseRate = if (totalCount > 0) {
             (respondedCount.toFloat() / totalCount * 100).toInt()
         } else 0
