@@ -9,6 +9,7 @@ query GetJobApplications {
     location
     jobUrl
     notes
+    idempotencyKey
     version
   }
 }

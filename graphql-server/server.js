@@ -18,9 +18,13 @@ const jobApplications = [
     location: 'Remote',
     jobUrl: 'https://example.com/jobs/1',
     notes: 'Great fit for the team',
+    idempotencyKey: 'initial-1',
     version: 1,
   }
 ]
+
+// Persistent ID counter to prevent reuse conflicts
+let nextId = Math.max(...jobApplications.map(app => parseInt(app.id)), 0) + 1
 
 const schema = createSchema({
   typeDefs: /* GraphQL */ `
@@ -33,6 +37,7 @@ const schema = createSchema({
       location: String
       jobUrl: String
       notes: String
+      idempotencyKey: String
       version: Int!
     }
 
@@ -49,6 +54,7 @@ const schema = createSchema({
       location: String
       jobUrl: String
       notes: String
+      idempotencyKey: String
     }
 
     type Mutation {
@@ -68,8 +74,18 @@ const schema = createSchema({
     },
     Mutation: {
       createJobApplication: (_, { input }) => {
+        // Idempotency check
+        if (input.idempotencyKey) {
+          const existing = jobApplications.find(app => app.idempotencyKey === input.idempotencyKey)
+          if (existing) {
+            console.log(`Idempotency hit: returning existing app for key ${input.idempotencyKey}`)
+            return existing
+          }
+        }
+
+        const id = String(nextId++)
         const newApp = {
-          id: String(jobApplications.length + 1),
+          id: id,
           companyName: input.companyName,
           positionTitle: input.positionTitle,
           status: input.status,
@@ -77,6 +93,7 @@ const schema = createSchema({
           location: input.location,
           jobUrl: input.jobUrl,
           notes: input.notes,
+          idempotencyKey: input.idempotencyKey,
           version: 1,
         }
         jobApplications.push(newApp)
@@ -157,5 +174,5 @@ const wsServer = new WebSocketServer({
 useServer({ schema }, wsServer)
 
 server.listen(4000, '0.0.0.0', () => {
-  console.log('ðŸš€ Server ready at http://0.0.0.0:4000/graphql (HTTP & WS)')
+  console.log('Server ready at http://0.0.0.0:4000/graphql (HTTP & WS)')
 })

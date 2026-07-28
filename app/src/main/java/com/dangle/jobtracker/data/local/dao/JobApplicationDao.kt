@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +64,16 @@ interface JobApplicationDao {
 
     @Update
     suspend fun updateApplication(entity: JobApplicationEntity)
+
+    /**
+     * Atomically replaces a local placeholder item with the official server version.
+     * This prevents the item from disappearing from the UI during the ID swap.
+     */
+    @Transaction
+    suspend fun replaceLocalWithServer(localEntity: JobApplicationEntity, serverEntity: JobApplicationEntity) {
+        deleteApplication(localEntity)
+        insertApplication(serverEntity)
+    }
 
     /**
      * Conflict Resolution: Overwrites server data with local state.

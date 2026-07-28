@@ -52,6 +52,7 @@ data class JobApplication(
     val location: String = "",
     val jobUrl: String = "",
     val notes: String = "",
+    val idempotencyKey: String = "",
     val syncStatus: SyncStatus = SyncStatus.SYNCED,
     val version: Int = 1,
     
@@ -63,5 +64,6 @@ data class JobApplication(
     val serverLocation: String? = null,
     val serverJobUrl: String? = null,
     val serverNotes: String? = null,
+    val serverIdempotencyKey: String? = null,
     val serverVersion: Int? = null
 )

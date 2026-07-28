@@ -12,6 +12,7 @@ type JobApplication {
   location: String
   jobUrl: String
   notes: String
+  idempotencyKey: String
   version: Int!
 }
 
@@ -28,6 +29,7 @@ input CreateJobApplicationInput {
   location: String
   jobUrl: String
   notes: String
+  idempotencyKey: String
 }
 
 type Mutation {

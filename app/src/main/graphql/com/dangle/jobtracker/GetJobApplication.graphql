@@ -8,6 +8,7 @@ query GetJobApplication($id: ID!) {
     location
     jobUrl
     notes
+    idempotencyKey
     version
   }
 }

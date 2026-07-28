@@ -10,7 +10,7 @@ import com.dangle.jobtracker.data.local.dao.JobApplicationDao
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.domain.model.SyncStatus
 
-@Database(entities = [JobApplicationEntity::class], version = 8, exportSchema = false)
+@Database(entities = [JobApplicationEntity::class], version = 10, exportSchema = false)
 @TypeConverters(AppDatabase.Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun jobApplicationDao(): JobApplicationDao

@@ -22,6 +22,7 @@ data class JobApplicationEntity(
     val location: String = "",
     val jobUrl: String = "",
     val notes: String = "",
+    val idempotencyKey: String = "",
     
     /** Indicates whether this item is synced, pending a push, or in conflict. */
     val syncStatus: SyncStatus = SyncStatus.SYNCED,
@@ -37,5 +38,6 @@ data class JobApplicationEntity(
     val serverLocation: String? = null,
     val serverJobUrl: String? = null,
     val serverNotes: String? = null,
+    val serverIdempotencyKey: String? = null,
     val serverVersion: Int? = null
 )

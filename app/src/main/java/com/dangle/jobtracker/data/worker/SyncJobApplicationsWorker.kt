@@ -169,7 +169,8 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
                     appliedDate = entity.appliedDate,
                     location = com.apollographql.apollo.api.Optional.present(entity.location),
                     jobUrl = com.apollographql.apollo.api.Optional.present(entity.jobUrl),
-                    notes = com.apollographql.apollo.api.Optional.present(entity.notes)
+                    notes = com.apollographql.apollo.api.Optional.present(entity.notes),
+                    idempotencyKey = com.apollographql.apollo.api.Optional.present(entity.idempotencyKey)
                 )
             )
         ).execute()
@@ -184,9 +185,8 @@ class SyncJobApplicationsWorker @AssistedInject constructor(
         val data = response.data?.createJobApplication
         Log.d(TAG, "Create response data: $data")
         if (data != null) {
-            // Delete local temp row and insert the official server-side row
-            dao.deleteApplication(entity)
-            dao.insertApplication(data.toEntity())
+            // Atomically replace local temp row with the official server-side row
+            dao.replaceLocalWithServer(entity, data.toEntity())
         } else {
             throw Exception("No data returned from server for create")
         }

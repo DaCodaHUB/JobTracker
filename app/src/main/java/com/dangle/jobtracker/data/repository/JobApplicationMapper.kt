@@ -1,6 +1,7 @@
 package com.dangle.jobtracker.data.repository
 
 import com.dangle.jobtracker.CreateJobApplicationMutation
+import com.dangle.jobtracker.GetJobApplicationQuery
 import com.dangle.jobtracker.GetJobApplicationsQuery
 import com.dangle.jobtracker.data.local.entity.JobApplicationEntity
 import com.dangle.jobtracker.domain.model.ApplicationStatus
@@ -17,12 +18,42 @@ fun GetJobApplicationsQuery.JobApplication.toEntity(): JobApplicationEntity {
         location = location ?: "",
         jobUrl = jobUrl ?: "",
         notes = notes ?: "",
+        idempotencyKey = idempotencyKey ?: "",
         syncStatus = SyncStatus.SYNCED,
         version = version,
         serverCompany = null,
         serverPositionTitle = null,
         serverStatus = null,
         serverAppliedDate = null,
+        serverLocation = null,
+        serverJobUrl = null,
+        serverNotes = null,
+        serverIdempotencyKey = null,
+        serverVersion = null
+    )
+}
+
+fun GetJobApplicationQuery.JobApplication.toEntity(): JobApplicationEntity {
+    return JobApplicationEntity(
+        id = id,
+        companyName = companyName,
+        positionTitle = positionTitle,
+        status = status,
+        appliedDate = appliedDate,
+        location = location ?: "",
+        jobUrl = jobUrl ?: "",
+        notes = notes ?: "",
+        idempotencyKey = idempotencyKey ?: "",
+        syncStatus = SyncStatus.SYNCED,
+        version = version,
+        serverCompany = null,
+        serverPositionTitle = null,
+        serverStatus = null,
+        serverAppliedDate = null,
+        serverLocation = null,
+        serverJobUrl = null,
+        serverNotes = null,
+        serverIdempotencyKey = null,
         serverVersion = null
     )
 }
@@ -37,12 +68,17 @@ fun CreateJobApplicationMutation.CreateJobApplication.toEntity(): JobApplication
         location = location ?: "",
         jobUrl = jobUrl ?: "",
         notes = notes ?: "",
+        idempotencyKey = idempotencyKey ?: "",
         syncStatus = SyncStatus.SYNCED,
         version = version,
         serverCompany = null,
         serverPositionTitle = null,
         serverStatus = null,
         serverAppliedDate = null,
+        serverLocation = null,
+        serverJobUrl = null,
+        serverNotes = null,
+        serverIdempotencyKey = null,
         serverVersion = null
     )
 }
@@ -57,6 +93,7 @@ fun JobApplicationEntity.toDomain(): JobApplication {
         location = location,
         jobUrl = jobUrl,
         notes = notes,
+        idempotencyKey = idempotencyKey,
         syncStatus = syncStatus,
         version = version,
         serverCompany = serverCompany,
@@ -66,6 +103,7 @@ fun JobApplicationEntity.toDomain(): JobApplication {
         serverLocation = serverLocation,
         serverJobUrl = serverJobUrl,
         serverNotes = serverNotes,
+        serverIdempotencyKey = serverIdempotencyKey,
         serverVersion = serverVersion
     )
 }
@@ -80,6 +118,7 @@ fun JobApplication.toEntity(): JobApplicationEntity {
         location = location,
         jobUrl = jobUrl,
         notes = notes,
+        idempotencyKey = idempotencyKey,
         syncStatus = syncStatus,
         version = version,
         serverCompany = serverCompany,
@@ -89,6 +128,7 @@ fun JobApplication.toEntity(): JobApplicationEntity {
         serverLocation = serverLocation,
         serverJobUrl = serverJobUrl,
         serverNotes = serverNotes,
+        serverIdempotencyKey = serverIdempotencyKey,
         serverVersion = serverVersion
     )
 }

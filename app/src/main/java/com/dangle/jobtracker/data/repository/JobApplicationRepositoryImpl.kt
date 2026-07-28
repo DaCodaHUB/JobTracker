@@ -139,9 +139,8 @@ class JobApplicationRepositoryImpl @Inject constructor (
                 return
             }
             
-            // Replace the local placeholder with the official server version
-            dao.deleteApplication(match)
-            dao.insertApplication(serverEntity)
+            // Atomically replace the local placeholder with the official server version
+            dao.replaceLocalWithServer(match, serverEntity)
             return
         }
 
@@ -206,11 +205,13 @@ class JobApplicationRepositoryImpl @Inject constructor (
         jobUrl: String,
         notes: String
     ): Result<JobApplication> = withContext(ioDispatcher) {
+        val id = "local_${UUID.randomUUID()}"
         val initialEntity = JobApplicationEntity(
-            id = "local_${UUID.randomUUID()}",
+            id = id,
             companyName = companyName, positionTitle = positionTitle,
             status = status.name, appliedDate = appliedDate,
             location = location, jobUrl = jobUrl, notes = notes,
+            idempotencyKey = id,
             syncStatus = SyncStatus.PENDING_CREATE
         )
         dao.insertApplication(initialEntity)

@@ -9,6 +9,7 @@ mutation CreateJobApplication($input: CreateJobApplicationInput!) {
         location
         jobUrl
         notes
+        idempotencyKey
         version
     }
 }
