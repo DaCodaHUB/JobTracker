@@ -44,6 +44,10 @@ class JobApplicationDaoTest {
             positionTitle = "Developer",
             status = "APPLIED",
             appliedDate = "2024-01-01",
+            location = "London",
+            jobUrl = "https://test.com",
+            notes = "Test notes",
+            idempotencyKey = "key-1",
             syncStatus = SyncStatus.PENDING_UPDATE,
             version = 1
         )

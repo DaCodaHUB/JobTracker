@@ -65,7 +65,10 @@ class JobApplicationRepositoryTest {
             companyName = "New Co",
             positionTitle = "Senior Dev",
             status = ApplicationStatus.INTERVIEWING,
-            appliedDate = "2024-02-01"
+            appliedDate = "2024-02-01",
+            location = "New York",
+            jobUrl = "https://example.com",
+            notes = "Note"
         )
 
         assertEquals(true, result.isSuccess)

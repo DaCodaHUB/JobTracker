@@ -35,8 +35,15 @@ class SyncJobApplicationsWorkerTest {
     @Test
     fun `doWork returns Result retry on network exception`() = runTest {
         val pendingEntity = JobApplicationEntity(
-            id = "1", companyName = "Co", positionTitle = "Dev",
-            status = "APPLIED", appliedDate = "2024-01-01",
+            id = "1", 
+            companyName = "Co", 
+            positionTitle = "Dev",
+            status = "APPLIED", 
+            appliedDate = "2024-01-01",
+            location = "",
+            jobUrl = "https://google.com",
+            notes = "",
+            idempotencyKey = "1",
             syncStatus = SyncStatus.PENDING_CREATE
         )
         coEvery { dao.getPendingApplications() } returns listOf(pendingEntity)
